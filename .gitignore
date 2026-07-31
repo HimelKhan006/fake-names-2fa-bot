@@ -1,5 +1,4 @@
 .env
-DEPLOYMENT_GUIDE.md
 bot_data.json
 __pycache__/
 *.pyc
