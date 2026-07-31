@@ -1079,7 +1079,7 @@ def handle_callback(call):
                     g = random.choice(["male", "female"])
 
                 full_name = generate_simple_name(user_id, g, pref_category)
-                tag = f" [{g.capitalize()}]" if pref_gender == "mixed" else ""
+                tag = f" ({g.capitalize()})" if pref_gender == "mixed" else ""
                 num_prefix = f"{idx:02d}." if count >= 10 else f"{idx}."
                 batch_lines.append(f"{num_prefix} `{full_name}`{tag}")
 
