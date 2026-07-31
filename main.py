@@ -109,11 +109,10 @@ def register_clean_native_commands():
                 pass
 
         native_commands = [
-            types.BotCommand("start", "Start Fake Names 2FA"),
-            types.BotCommand("restart", "Reset session & restart bot"),
+            types.BotCommand("start", "Start / Restart Bot"),
             types.BotCommand("invite", "Invite & share bot link"),
-            types.BotCommand("id", "Check Telegram User ID & Info"),
             types.BotCommand("guide", "View User Guide"),
+            types.BotCommand("id", "Check Telegram User ID & Info"),
         ]
         for sc in scopes:
             try:
@@ -121,7 +120,7 @@ def register_clean_native_commands():
             except Exception:
                 pass
 
-        logger.info("Purged all command scopes and registered clean 5 native Telegram menu commands successfully.")
+        logger.info("Purged all command scopes and registered clean 4 native Telegram menu commands successfully.")
     except Exception as err:
         logger.warning(f"Could not register my_commands: {err}")
 
@@ -469,8 +468,7 @@ def get_admin_dashboard_text():
         "• /admin or /stats — Refresh Admin Dashboard\n\n"
         "───────────────────────────\n"
         "GENERAL USER & BOT COMMANDS:\n"
-        "• /start — Start bot & open console menu\n"
-        "• /restart — Wipe session cache & reset settings\n"
+        "• /start — Start / Restart bot & open console menu\n"
         "• /invite — Generate deep-link & view invite count\n"
         "• /guide — View complete User Guide\n"
         "• /id — Inspect Telegram User ID & Account Info\n"
