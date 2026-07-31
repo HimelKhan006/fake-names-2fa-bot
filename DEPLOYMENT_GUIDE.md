@@ -28,18 +28,23 @@
 
 ---
 
-## 2. Project Files & Architecture
+## 2. Exact Files to Upload to Hosting / GitHub
 
-For safe long-term backup, store these **6 core files**:
+### ✅ FILES YOU MUST UPLOAD (Essential Project Files):
 
-| File Name | Purpose |
-| :--- | :--- |
-| `main.py` | Complete bot source code with 16-worker thread polling, 2FA decoder, name generator, HTTP health check, and admin system |
-| `requirements.txt` | Python library dependencies (`pyTelegramBotAPI`, `pyotp`, `python-dotenv`) |
-| `Procfile` | Render Web Service deployment command (`web: python main.py`) |
-| `.gitignore` | Prevents private `.env` and `__pycache__` from leaking to public GitHub |
-| `README.md` | Feature overview and quickstart instructions |
-| `DEPLOYMENT_GUIDE.md` | Full A-to-Z deployment and maintenance manual |
+| File Name | Purpose | Upload Status |
+| :--- | :--- | :--- |
+| `main.py` | Complete bot source code (16-worker threads, 2FA decoder, name generator, HTTP health server) | **MUST UPLOAD ✅** |
+| `requirements.txt` | Python dependencies (`pyTelegramBotAPI`, `pyotp`, `python-dotenv`) | **MUST UPLOAD ✅** |
+| `Procfile` | Render Web Service process startup instruction (`web: python main.py`) | **MUST UPLOAD ✅** |
+| `.gitignore` | Protects private secret files from leaking to GitHub | **MUST UPLOAD ✅** |
+| `README.md` & `DEPLOYMENT_GUIDE.md` | Complete documentation and setup manuals | **MUST UPLOAD ✅** |
+
+### ❌ FILES YOU MUST NEVER UPLOAD TO PUBLIC GITHUB:
+
+| File Name | Reason | Where to Put Secrets Instead? |
+| :--- | :--- | :--- |
+| `.env` | Contains private `TELEGRAM_BOT_TOKEN` | Enter secrets safely inside Render's **Environment Variables** tab! |
 
 ---
 
