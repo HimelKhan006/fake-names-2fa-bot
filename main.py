@@ -112,6 +112,7 @@ def register_clean_native_commands():
             types.BotCommand("restart", "Reset session & restart bot"),
             types.BotCommand("invite", "Invite & share bot link"),
             types.BotCommand("guide", "View User Guide"),
+            types.BotCommand("id", "Check Telegram User ID & Info"),
         ]
         for sc in scopes:
             try:
@@ -119,7 +120,7 @@ def register_clean_native_commands():
             except Exception:
                 pass
 
-        logger.info("Purged all command scopes and registered clean 4 native Telegram menu commands successfully.")
+        logger.info("Purged all command scopes and registered clean 5 native Telegram menu commands successfully.")
     except Exception as err:
         logger.warning(f"Could not register my_commands: {err}")
 
@@ -384,10 +385,12 @@ def get_user_guide_text():
         "2. INSTANT 2FA AUTHENTICATOR:\n"
         "• Paste any Base32 2FA Secret Key or OTPAuth link into chat.\n"
         "• The bot will instantly return your 6-digit TOTP code in a single-tap copy block!\n\n"
-        "3. INVITE SYSTEM:\n"
+        "3. ACCOUNT & USER ID INSPECTOR:\n"
+        "• Use /id anytime to inspect your Telegram User ID, Unique Member ID (#FN-1001), and account info!\n\n"
+        "4. INVITE SYSTEM:\n"
         "• Use Telegram's native Menu (/invite) to get your personal invite link and track how many members you have invited!\n\n"
-        "4. NAVIGATION:\n"
-        "• Use Telegram's native menu button (/) to access commands (/start, /restart, /invite, /guide) anytime."
+        "5. NAVIGATION:\n"
+        "• Use Telegram's native menu button (/) to access commands (/start, /restart, /invite, /guide, /id) anytime."
     )
 
 def get_admin_dashboard_text():
