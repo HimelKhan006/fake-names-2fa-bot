@@ -111,8 +111,8 @@ def register_clean_native_commands():
             types.BotCommand("start", "Start Fake Names 2FA"),
             types.BotCommand("restart", "Reset session & restart bot"),
             types.BotCommand("invite", "Invite & share bot link"),
-            types.BotCommand("guide", "View User Guide"),
             types.BotCommand("id", "Check Telegram User ID & Info"),
+            types.BotCommand("guide", "View User Guide"),
         ]
         for sc in scopes:
             try:
