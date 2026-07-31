@@ -144,7 +144,7 @@ def load_data():
     global known_users, welcomed_users, banned_users, user_unique_ids, referrals
     if os.path.exists(DATA_FILE):
         try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
+            with open(DATA_FILE, "r", encoding="utf-8-sig") as f:
                 data = json.load(f)
                 welcomed_users.update(data.get("welcomed_users", []))
                 known_users.update(data.get("known_users", []))
@@ -259,7 +259,10 @@ def check_ban_guard(chat_id, user_id):
 
 def get_user_settings(user_id):
     if user_id not in user_settings:
-        user_settings[user_id] = {'gender': 'mixed', 'quantity': 10}
+        user_settings[user_id] = {'category': 'islamic', 'gender': 'mixed', 'quantity': 10}
+    else:
+        if 'category' not in user_settings[user_id]:
+            user_settings[user_id]['category'] = 'islamic'
     return user_settings[user_id]
 
 # -----------------------------------------------------------------------------
@@ -297,7 +300,7 @@ def universal_extract_2fa_secret(text: str) -> Optional[str]:
 # -----------------------------------------------------------------------------
 # 3. Word Banks & Pure Name Generator
 # -----------------------------------------------------------------------------
-MALE_FIRST_NAMES = [
+ISLAMIC_MALE_FIRST_NAMES = [
     "Muhammad", "Ahmed", "Mustafa", "Ali", "Hassan", "Hussein", "Omar", "Usman", "Ibrahim", "Yusuf",
     "Hamza", "Bilal", "Khalid", "Tariq", "Zayd", "Idris", "Anas", "Rayyan", "Sulaiman", "Harun",
     "Yahya", "Ismail", "Ishaq", "Yaqoob", "Musa", "Isa", "Luqman", "Zakaraiya", "Younus", "Ayyub",
@@ -306,7 +309,7 @@ MALE_FIRST_NAMES = [
     "Wassim", "Rashid", "Imran", "Salim", "Faysal", "Sharif", "Jamal", "Nasser", "Walid", "Kamal"
 ]
 
-FEMALE_FIRST_NAMES = [
+ISLAMIC_FEMALE_FIRST_NAMES = [
     "Fatima", "Aisha", "Khadija", "Maryam", "Zainab", "Ruqayyah", "Sumayyah", "Yasmin", "Safiyyah", "Hafsah",
     "Sarah", "Hajar", "Asma", "Juwairiyah", "Sawdah", "Maymunah", "Halimah", "Layla", "Amina", "Noura",
     "Salma", "Hana", "Iman", "Farida", "Lina", "Reem", "Samira", "Dalia", "Noor", "Huda",
@@ -314,7 +317,7 @@ FEMALE_FIRST_NAMES = [
     "Rawan", "Latifa", "Mona", "Wafa", "Tasnim", "Safa", "Marwa", "Kawthar", "Afraa", "Maha"
 ]
 
-SURNAMES = [
+ISLAMIC_SURNAMES = [
     "Al-Faruq", "Al-Hassan", "Al-Husayn", "Siddiqui", "Farooqi", "Rahman", "Khan", "Malik", "Qureshi",
     "Abbasi", "Hashimi", "Ansari", "Al-Masri", "Al-Baghdadi", "Usmani", "Al-Sayed", "Al-Ahmad", "Al-Mansoor",
     "Al-Zahrani", "Al-Ghamdi", "Al-Otaibi", "Al-Shehri", "Al-Dawsari", "Al-Mutairi", "Al-Rashid", "Al-Khatib",
@@ -323,17 +326,63 @@ SURNAMES = [
     "Syed", "Al-Maliki", "Al-Nasser", "Al-Farsi", "Al-Bahrani", "Al-Saeed", "Al-Zomor", "Al-Ghazali"
 ]
 
-def generate_simple_name(user_id, gender):
+GENERAL_MALE_FIRST_NAMES = [
+    "James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph", "Thomas", "Charles",
+    "Christopher", "Daniel", "Matthew", "Anthony", "Mark", "Donald", "Steven", "Paul", "Andrew", "Joshua",
+    "Kenneth", "Kevin", "Brian", "George", "Timothy", "Ronald", "Jason", "Edward", "Jeffrey", "Ryan",
+    "Jacob", "Gary", "Nicholas", "Eric", "Jonathan", "Stephen", "Larry", "Justin", "Scott", "Brandon",
+    "Benjamin", "Samuel", "Gregory", "Alexander", "Frank", "Patrick", "Raymond", "Jack", "Dennis", "Jerry",
+    "Tyler", "Aaron", "Jose", "Adam", "Nathan", "Henry", "Douglas", "Zachary", "Peter", "Kyle",
+    "Ethan", "Walter", "Noah", "Jeremy", "Christian", "Keith", "Roger", "Terry", "Sean", "Austin"
+]
+
+GENERAL_FEMALE_FIRST_NAMES = [
+    "Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", "Jessica", "Sarah", "Karen",
+    "Lisa", "Nancy", "Betty", "Sandra", "Margaret", "Ashley", "Kimberly", "Emily", "Donna", "Michelle",
+    "Carol", "Amanda", "Dorothy", "Melissa", "Deborah", "Stephanie", "Rebecca", "Sharon", "Laura", "Cynthia",
+    "Kathleen", "Amy", "Angela", "Shirley", "Anna", "Brenda", "Pamela", "Nicole", "Emma", "Samantha",
+    "Katherine", "Christine", "Debra", "Rachel", "Carolyn", "Janet", "Catherine", "Maria", "Heather", "Diane",
+    "Olivia", "Sophia", "Ava", "Isabella", "Charlotte", "Amelia", "Mia", "Harper", "Evelyn", "Abigail"
+]
+
+GENERAL_SURNAMES = [
+    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez",
+    "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
+    "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
+    "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
+    "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"
+]
+
+# Aliases for backwards compatibility
+MALE_FIRST_NAMES = ISLAMIC_MALE_FIRST_NAMES
+FEMALE_FIRST_NAMES = ISLAMIC_FEMALE_FIRST_NAMES
+SURNAMES = ISLAMIC_SURNAMES
+
+def generate_simple_name(user_id, gender, category="islamic"):
     """Generates a simple unique First Name + Last Name in < 1ms."""
     if user_id not in user_history:
         user_history[user_id] = set()
 
     is_female = (gender.lower() == "female")
-    first_list = FEMALE_FIRST_NAMES if is_female else MALE_FIRST_NAMES
+    cat = category.lower()
+
+    if cat == "general":
+        first_list = GENERAL_FEMALE_FIRST_NAMES if is_female else GENERAL_MALE_FIRST_NAMES
+        last_list = GENERAL_SURNAMES
+    elif cat == "islamic":
+        first_list = ISLAMIC_FEMALE_FIRST_NAMES if is_female else ISLAMIC_MALE_FIRST_NAMES
+        last_list = ISLAMIC_SURNAMES
+    else:  # mixed / all
+        if random.choice([True, False]):
+            first_list = GENERAL_FEMALE_FIRST_NAMES if is_female else GENERAL_MALE_FIRST_NAMES
+            last_list = GENERAL_SURNAMES
+        else:
+            first_list = ISLAMIC_FEMALE_FIRST_NAMES if is_female else ISLAMIC_MALE_FIRST_NAMES
+            last_list = ISLAMIC_SURNAMES
 
     for _ in range(20):
         first = random.choice(first_list)
-        last = random.choice(SURNAMES)
+        last = random.choice(last_list)
         full_name = f"{first} {last}"
 
         if full_name not in user_history[user_id]:
@@ -342,15 +391,20 @@ def generate_simple_name(user_id, gender):
             user_history[user_id].add(full_name)
             return full_name
 
-    return f"{random.choice(first_list)} {random.choice(SURNAMES)}"
+    return f"{random.choice(first_list)} {random.choice(last_list)}"
 
 # -----------------------------------------------------------------------------
 # 4. Fake Names 2FA UI Console & User Guide
 # -----------------------------------------------------------------------------
 def build_kkh_keyboard(settings):
     """Builds Fake Names 2FA clean interactive inline keyboard."""
+    category = settings.get('category', 'islamic')
     gender = settings['gender']
     qty = settings['quantity']
+
+    c_is = "Islamic " + ("✓" if category == "islamic" else "")
+    c_ge = "General " + ("✓" if category == "general" else "")
+    c_mx = "Mixed " + ("✓" if category == "mixed" else "")
 
     g_m = "Male " + ("✓" if gender == "male" else "")
     g_f = "Female " + ("✓" if gender == "female" else "")
@@ -363,20 +417,26 @@ def build_kkh_keyboard(settings):
 
     markup = types.InlineKeyboardMarkup(row_width=3)
     
-    # Row 1: Gender
+    # Row 1: Name Type / Category
+    btn_cis = types.InlineKeyboardButton(c_is.strip(), callback_data="set_c_islamic")
+    btn_cge = types.InlineKeyboardButton(c_ge.strip(), callback_data="set_c_general")
+    btn_cmx = types.InlineKeyboardButton(c_mx.strip(), callback_data="set_c_mixed")
+    markup.row(btn_cis, btn_cge, btn_cmx)
+
+    # Row 2: Gender
     btn_m = types.InlineKeyboardButton(g_m.strip(), callback_data="set_g_male")
     btn_f = types.InlineKeyboardButton(g_f.strip(), callback_data="set_g_female")
     btn_x = types.InlineKeyboardButton(g_x.strip(), callback_data="set_g_mixed")
     markup.row(btn_m, btn_f, btn_x)
 
-    # Row 2: Quantity
+    # Row 3: Quantity
     btn_q5 = types.InlineKeyboardButton(q5.strip(), callback_data="set_q_5")
     btn_q10 = types.InlineKeyboardButton(q10.strip(), callback_data="set_q_10")
     btn_q20 = types.InlineKeyboardButton(q20.strip(), callback_data="set_q_20")
     btn_q50 = types.InlineKeyboardButton(q50.strip(), callback_data="set_q_50")
     markup.row(btn_q5, btn_q10, btn_q20, btn_q50)
 
-    # Row 3: Full-Width Generate Action Button
+    # Row 4: Full-Width Generate Action Button
     btn_gen = types.InlineKeyboardButton("GENERATE", callback_data="do_generate")
     markup.row(btn_gen)
 
@@ -384,6 +444,7 @@ def build_kkh_keyboard(settings):
 
 def get_kkh_menu_text(settings):
     """Generates Fake Names 2FA menu text without emojis."""
+    cat_label = settings.get('category', 'islamic').capitalize()
     gender_label = settings['gender'].capitalize()
     qty_label = f"{settings['quantity']} Names"
 
@@ -391,6 +452,7 @@ def get_kkh_menu_text(settings):
         "Fake Names 2FA\n"
         "CREATED BY: KKH\n\n"
         "ACTIVE SETTINGS:\n"
+        f"• Name Category: {cat_label}\n"
         f"• Gender Preference: {gender_label}\n"
         f"• Batch Quantity: {qty_label}\n\n"
         "Tap options below to customize, then press GENERATE:"
@@ -418,6 +480,7 @@ def get_user_guide_text():
         "Fake Names 2FA — USER GUIDE\n"
         "CREATED BY: KKH\n\n"
         "1. NAME GENERATOR:\n"
+        "• Select Name Category (Islamic, General, Mixed).\n"
         "• Select Gender Preference (Male, Female, Mixed).\n"
         "• Select Batch Quantity (5, 10, 20, 50).\n"
         "• Press GENERATE to create clean names instantly.\n"
@@ -917,7 +980,7 @@ def handle_commands(message):
         if "/restart" in cmd:
             if user_id in user_history:
                 user_history[user_id].clear()
-            user_settings[user_id] = {'gender': 'mixed', 'quantity': 10}
+            user_settings[user_id] = {'category': 'islamic', 'gender': 'mixed', 'quantity': 10}
             is_restart = True
 
         if "/guide" in cmd:
@@ -937,7 +1000,7 @@ def handle_commands(message):
                 f"Hello {first_name}! Welcome to Fake Names 2FA — your professional Fake Name Generator & instant 2FA Authenticator.\n\n"
                 "USER GUIDE & FEATURES:\n"
                 "1. NAME GENERATOR:\n"
-                "• Customize Gender (Male, Female, Mixed) & Quantity (5, 10, 20, 50).\n"
+                "• Customize Category (Islamic, General, Mixed), Gender (Male, Female, Mixed) & Quantity (5, 10, 20, 50).\n"
                 "• Tap GENERATE to create clean, single-tap copyable names.\n\n"
                 "2. INSTANT 2FA AUTHENTICATOR:\n"
                 "• Paste any Base32 2FA Secret Key or OTPAuth link into chat to get a live 6-digit TOTP code instantly.\n\n"
@@ -971,7 +1034,13 @@ def handle_callback(call):
         settings = get_user_settings(user_id)
         data = call.data
 
-        if data == "set_g_male":
+        if data == "set_c_islamic":
+            settings['category'] = "islamic"
+        elif data == "set_c_general":
+            settings['category'] = "general"
+        elif data == "set_c_mixed":
+            settings['category'] = "mixed"
+        elif data == "set_g_male":
             settings['gender'] = "male"
         elif data == "set_g_female":
             settings['gender'] = "female"
@@ -998,6 +1067,7 @@ def handle_callback(call):
         if data == "do_generate":
             count = settings['quantity']
             pref_gender = settings['gender']
+            pref_category = settings.get('category', 'islamic')
             batch_lines = []
 
             for _ in range(count):
@@ -1008,11 +1078,11 @@ def handle_callback(call):
                 else:
                     g = random.choice(["male", "female"])
 
-                full_name = generate_simple_name(user_id, g)
+                full_name = generate_simple_name(user_id, g, pref_category)
                 batch_lines.append(f"`{full_name}`")
 
             header = "Fake Names 2FA — BATCH RESULT\nCREATED BY: KKH\n\n"
-            meta = f"Mode: {pref_gender.capitalize()} | Quantity: {count} Names\n───────────────────────────\n\n"
+            meta = f"Type: {pref_category.capitalize()} | Mode: {pref_gender.capitalize()} | Quantity: {count} Names\n───────────────────────────\n\n"
             body = "\n".join(batch_lines)
             footer = "\n\n───────────────────────────\nTap on any name above to copy!"
 
