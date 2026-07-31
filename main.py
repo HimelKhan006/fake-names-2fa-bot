@@ -482,6 +482,7 @@ def get_user_settings(user_id):
 def universal_extract_2fa_secret(text: str) -> Optional[str]:
     """
     Sub-millisecond Base32 2FA secret key parser using pre-compiled regex.
+    Matches behavior of Google Authenticator / Authy (strip invalid chars, never replace).
     """
     if not text:
         return None
@@ -494,8 +495,8 @@ def universal_extract_2fa_secret(text: str) -> Optional[str]:
         if match:
             raw_text = match.group(1)
 
-    # 2. Clean out spaces, hyphens, tabs, newlines, and normalize 0->O, 1->I typos
-    raw_text = raw_text.replace('0', 'O').replace('1', 'I')
+    # 2. Strip spaces, hyphens, tabs, newlines, and any non-Base32 characters
+    #    Base32 alphabet: A-Z and 2-7 only (no 0, 1, 8, 9)
     cleaned = RE_CLEAN_BASE32.sub('', raw_text).upper()
 
     # Base32 2FA keys are standard 16, 26, 32, or 64 characters long
@@ -506,6 +507,13 @@ def universal_extract_2fa_secret(text: str) -> Optional[str]:
     missing_padding = len(cleaned) % 8
     if missing_padding:
         cleaned += '=' * (8 - missing_padding)
+
+    # 4. Validate by attempting a real base32 decode
+    try:
+        import base64
+        base64.b32decode(cleaned, casefold=True)
+    except Exception:
+        return None
 
     return cleaned
 
