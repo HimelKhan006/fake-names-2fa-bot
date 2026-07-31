@@ -35,6 +35,7 @@ import time
 import signal
 import atexit
 import threading
+import urllib.request
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
@@ -140,9 +141,140 @@ referrals = {}            # inviter_id -> set of invited user_ids
 broadcast_history = {}    # broadcast_seq (int) -> list of (user_id, message_id)
 broadcast_seq = 100
 
-def load_data():
-    """Loads persistent member data from disk."""
+GIST_ID = os.getenv("GIST_ID", "").strip()
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip() or os.getenv("GIST_TOKEN", "").strip()
+
+def sync_from_gist():
+    """Fetches and restores persistent member data from GitHub Gist Database on startup."""
     global known_users, welcomed_users, banned_users, user_unique_ids, referrals
+    if not GIST_ID:
+        return False
+    try:
+        url = f"https://api.github.com/gists/{GIST_ID}"
+        req = urllib.request.Request(url)
+        req.add_header("User-Agent", "FakeNames2FABot")
+        if GITHUB_TOKEN:
+            req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status == 200:
+                gist_data = json.loads(response.read().decode('utf-8'))
+                files = gist_data.get("files", {})
+                if "bot_data.json" in files:
+                    content_str = files["bot_data.json"].get("content", "")
+                    if content_str:
+                        data = json.loads(content_str)
+                        welcomed_users.update(data.get("welcomed_users", []))
+                        known_users.update(data.get("known_users", []))
+                        banned_users.update(data.get("banned_users", []))
+                        for k, v in data.get("user_unique_ids", {}).items():
+                            uid = int(k) if str(k).isdigit() else k
+                            user_unique_ids[uid] = v
+                        for k, v in data.get("referrals", {}).items():
+                            uid = int(k) if str(k).isdigit() else k
+                            referrals[uid] = set(v)
+                        logger.info("Successfully restored member data from GitHub Gist Database!")
+                        return True
+    except Exception as e:
+        logger.warning(f"Could not sync data from GitHub Gist: {e}")
+    return False
+
+def sync_to_gist_async():
+    """Asynchronously backs up bot_data.json to GitHub Gist Database in the background."""
+    if not GIST_ID or not GITHUB_TOKEN:
+        return
+
+    def _push():
+        try:
+            url = f"https://api.github.com/gists/{GIST_ID}"
+            data_payload = {
+                "welcomed_users": list(welcomed_users),
+                "known_users": list(known_users),
+                "banned_users": list(banned_users),
+                "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
+                "referrals": {str(k): list(v) for k, v in referrals.items()}
+            }
+            json_str = json.dumps(data_payload, ensure_ascii=False, indent=2)
+            payload = {
+                "files": {
+                    "bot_data.json": {
+                        "content": json_str
+                    }
+                }
+            }
+            req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), method='PATCH')
+            req.add_header("User-Agent", "FakeNames2FABot")
+            req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+            req.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status == 200:
+                    logger.info("Successfully backed up bot_data.json to GitHub Gist Database!")
+        except Exception as e:
+            logger.warning(f"GitHub Gist sync backup error: {e}")
+
+    threading.Thread(target=_push, daemon=True).start()
+
+def auto_create_gist():
+    """Automatically creates a private GitHub Gist Database if GITHUB_TOKEN is set but GIST_ID is empty."""
+    global GIST_ID
+    if GIST_ID or not GITHUB_TOKEN:
+        return
+    try:
+        url = "https://api.github.com/gists"
+        data_payload = {
+            "welcomed_users": list(welcomed_users),
+            "known_users": list(known_users),
+            "banned_users": list(banned_users),
+            "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
+            "referrals": {str(k): list(v) for k, v in referrals.items()}
+        }
+        json_str = json.dumps(data_payload, ensure_ascii=False, indent=2)
+        payload = {
+            "description": "Fake Names 2FA Telegram Bot Persistent Database (bot_data.json)",
+            "public": False,
+            "files": {
+                "bot_data.json": {
+                    "content": json_str
+                }
+            }
+        }
+        req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), method='POST')
+        req.add_header("User-Agent", "FakeNames2FABot")
+        req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status == 201:
+                gist_data = json.loads(response.read().decode('utf-8'))
+                GIST_ID = gist_data.get("id", "")
+                logger.info(f"Auto-created new GitHub Gist Database! GIST_ID: {GIST_ID}")
+    except Exception as e:
+        logger.warning(f"Could not auto-create GitHub Gist: {e}")
+
+def save_data_local_only():
+    """Saves persistent member data to local disk."""
+    try:
+        data = {
+            "welcomed_users": list(welcomed_users),
+            "known_users": list(known_users),
+            "banned_users": list(banned_users),
+            "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
+            "referrals": {str(k): list(v) for k, v in referrals.items()}
+        }
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"Could not save data file: {e}")
+
+def load_data():
+    """Loads persistent member data from GitHub Gist or disk."""
+    global known_users, welcomed_users, banned_users, user_unique_ids, referrals
+    
+    # 1. Try syncing from GitHub Gist database first
+    if sync_from_gist():
+        save_data_local_only()
+        return
+
+    # 2. Fallback to local disk file if Gist not set / unavailable
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8-sig") as f:
@@ -159,20 +291,12 @@ def load_data():
         except Exception as e:
             logger.warning(f"Could not load data file: {e}")
 
+    auto_create_gist()
+
 def save_data():
-    """Saves persistent member data to disk."""
-    try:
-        data = {
-            "welcomed_users": list(welcomed_users),
-            "known_users": list(known_users),
-            "banned_users": list(banned_users),
-            "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
-            "referrals": {str(k): list(v) for k, v in referrals.items()}
-        }
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.warning(f"Could not save data file: {e}")
+    """Saves persistent member data to local disk and syncs to GitHub Gist."""
+    save_data_local_only()
+    sync_to_gist_async()
 
 load_data()
 
