@@ -1156,8 +1156,6 @@ try:
 except Exception:
     pass
 
-atexit.register(lambda: notify_server_status(is_online=False))
-
 if __name__ == '__main__':
     logger.info("Starting ultra-fast 16-worker thread Fake Names 2FA telebot Infinity Polling...")
     notify_server_status(is_online=True)
