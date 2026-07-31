@@ -1310,7 +1310,11 @@ def handle_callback(call):
             try:
                 bot.edit_message_text(text, chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
             except Exception:
-                pass
+                # Fallback: send a fresh message so buttons always appear
+                try:
+                    bot.send_message(call.message.chat.id, text, reply_markup=markup)
+                except Exception:
+                    pass
             return
 
         if data == "do_generate":
@@ -1356,14 +1360,18 @@ def handle_callback(call):
 
             try:
                 bot.edit_message_text(
-                    chat_id=call.message.chat.id, 
-                    message_id=call.message.message_id, 
-                    text=response_text, 
-                    reply_markup=markup, 
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    text=response_text,
+                    reply_markup=markup,
                     parse_mode='Markdown'
                 )
             except Exception:
-                pass
+                # Fallback: send fresh message so batch result + buttons always appear
+                try:
+                    bot.send_message(call.message.chat.id, response_text, reply_markup=markup, parse_mode='Markdown')
+                except Exception:
+                    pass
 
         elif data.startswith("refresh_2fa_"):
             secret_key = data.replace("refresh_2fa_", "")
@@ -1397,7 +1405,11 @@ def handle_callback(call):
                         parse_mode='Markdown'
                     )
                 except Exception:
-                    pass
+                    # Fallback: send fresh 2FA card so refresh button always appears
+                    try:
+                        bot.send_message(call.message.chat.id, response, reply_markup=markup, parse_mode='Markdown')
+                    except Exception:
+                        pass
                 try:
                     bot.answer_callback_query(call.id, text="🔄 2FA Code Refreshed!")
                 except Exception:
@@ -1412,7 +1424,11 @@ def handle_callback(call):
             try:
                 bot.edit_message_text(text, chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
             except Exception:
-                pass
+                # Fallback: always send a fresh menu so buttons never disappear
+                try:
+                    bot.send_message(call.message.chat.id, text, reply_markup=markup)
+                except Exception:
+                    pass
 
     except Exception as err:
         logger.error(f"Error in handle_callback: {err}")
