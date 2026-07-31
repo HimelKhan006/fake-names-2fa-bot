@@ -1053,7 +1053,7 @@ import http.server
 import socketserver
 
 def run_health_server():
-    port = int(os.getenv("PORT", 8080))
+    port = int(os.getenv("PORT", 10000))
     class HealthHandler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
@@ -1064,8 +1064,9 @@ def run_health_server():
             pass
 
     try:
-        with socketserver.TCPServer(("", port), HealthHandler) as httpd:
-            logger.info(f"Health check HTTP server listening on port {port}")
+        socketserver.TCPServer.allow_reuse_address = True
+        with socketserver.TCPServer(("0.0.0.0", port), HealthHandler) as httpd:
+            logger.info(f"Health check HTTP server bound to 0.0.0.0:{port}")
             httpd.serve_forever()
     except Exception as e:
         logger.warning(f"Could not start health HTTP server: {e}")
