@@ -9,28 +9,56 @@
 ## 📑 TABLE OF CONTENTS
 
 1. [Telegram Bot Creation via BotFather](#1-telegram-bot-creation-via-botfather)
-2. [Project Files & Architecture](#2-project-files--architecture)
-3. [Local Configuration & Testing](#3-local-configuration--testing)
-4. [GitHub Repository Setup & Push](#4-github-repository-setup--push)
-5. [24/7 Hosting on Render.com](#5-247-hosting-on-rendercom)
+2. [Exact Files to Upload to Hosting / GitHub](#2-exact-files-to-upload-to-hosting--github)
+3. [Local Terminal Setup & Testing Commands](#3-local-terminal-setup--testing-commands)
+4. [GitHub Repository Setup & Push Commands](#4-github-repository-setup--push-commands)
+5. [24/7 Hosting Setup Instructions on Render.com](#5-247-hosting-setup-instructions-on-rendercom)
 6. [24/7 Continuous Uptime Pinger (UptimeRobot)](#6-247-continuous-uptime-pinger-uptimerobot)
-7. [Admin Control Panel & Commands Master List](#7-admin-control-panel--commands-master-list)
+7. [Admin & User Commands Master Reference Guide](#7-admin--user-commands-master-reference-guide)
 
 ---
 
 ## 1. Telegram Bot Creation via BotFather
 
+Follow these step-by-step instructions in Telegram:
+
 1. Open Telegram and search for **[@BotFather](https://t.me/BotFather)**.
-2. Send `/newbot` to create a new bot.
-3. Choose a Name (e.g. `Fake Names 2FA`).
-4. Choose a Username ending in `bot` (e.g. `Fake_Names_2FA_Bot`).
-5. Copy your **HTTP API Token** (e.g. `8772394606:AAFbBND_6i...`).
+2. Start chat and send:
+
+   ```text
+   /newbot
+   ```
+
+3. Enter your **Bot Name**:
+
+   ```text
+   Fake Names 2FA
+   ```
+
+4. Enter your **Bot Username** (must end in `bot`):
+
+   ```text
+   Fake_Names_2FA_Bot
+   ```
+
+5. Copy your **HTTP API Token** (Format: `8772394606:AAFbBND_6i1Cxg7mRn0CeoMZhZlRU4LNA0Y`).
+6. Set Bot Description (Optional):
+
+   ```text
+   /setdescription
+   ```
+
+   *Select your bot and paste*:
+
+   ```text
+   Instant Fake Name Generator & 2FA Authenticator Bot created by KKH.
+   ```
 
 ---
 
 ## 2. Exact Files to Upload to Hosting / GitHub
 
-### ✅ FILES YOU MUST UPLOAD (Essential Project Files):
+### ✅ FILES YOU MUST UPLOAD (Essential Project Files)
 
 | File Name | Purpose | Upload Status |
 | :--- | :--- | :--- |
@@ -40,7 +68,7 @@
 | `.gitignore` | Protects private secret files from leaking to GitHub | **MUST UPLOAD ✅** |
 | `README.md` & `DEPLOYMENT_GUIDE.md` | Complete documentation and setup manuals | **MUST UPLOAD ✅** |
 
-### ❌ FILES YOU MUST NEVER UPLOAD TO PUBLIC GITHUB:
+### ❌ FILES YOU MUST NEVER UPLOAD TO PUBLIC GITHUB
 
 | File Name | Reason | Where to Put Secrets Instead? |
 | :--- | :--- | :--- |
@@ -48,106 +76,145 @@
 
 ---
 
-## 3. Local Configuration & Testing
+## 3. Local Terminal Setup & Testing Commands
 
-1. Create a `.env` file in the project folder with:
+Run these exact terminal commands on your local machine:
 
-   ```env
-   TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-   ADMIN_ID=6798979733,@MegalodonKKH
-   ```
+### Step 3.1: Navigate to Project Folder
 
-2. Install Python dependencies:
+```bash
+cd "c:\new tele bot"
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Step 3.2: Create `.env` Configuration File
 
-3. Run the bot locally:
+Create a file named `.env` in `c:\new tele bot\` containing:
 
-   ```bash
-   python main.py
-   ```
+```env
+TELEGRAM_BOT_TOKEN=8772394606:AAFbBND_6i1Cxg7mRn0CeoMZhZlRU4LNA0Y
+ADMIN_ID=6798979733,@MegalodonKKH
+```
 
-*Note: Before running on Render live server, ALWAYS close local `python main.py` so only 1 instance connects to Telegram.*
+### Step 3.3: Install Python Dependencies
 
----
+```bash
+pip install -r requirements.txt
+```
 
-## 4. GitHub Repository Setup & Push
+### Step 3.4: Verify Python Syntax Compilation
 
-1. Initialize Git repository and commit code:
+```bash
+python -m py_compile main.py
+```
 
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit for Fake Names 2FA bot"
-   ```
+### Step 3.5: Run Bot Locally for Testing
 
-2. Link to your GitHub repo and push:
+```bash
+python main.py
+```
 
-   ```bash
-   git remote add origin https://github.com/HimelKhan006/fake-names-2fa-bot.git
-   git branch -M main
-   git push -u origin main --force
-   ```
+*CRITICAL NOTE: Stop the local Python process (`CTRL + C` or closing terminal) BEFORE launching on Render live server so Telegram does not trigger `409 Conflict` errors!*
 
 ---
 
-## 5. 24/7 Hosting on Render.com
+## 4. GitHub Repository Setup & Push Commands
 
-1. Sign up/Log in to **[Render.com](https://render.com)**.
+Run these terminal commands to initialize Git and push all project files to GitHub:
+
+### Step 4.1: Initialize Git Repository
+
+```bash
+git init
+```
+
+### Step 4.2: Add All Project Files
+
+```bash
+git add main.py requirements.txt Procfile .gitignore README.md DEPLOYMENT_GUIDE.md
+```
+
+### Step 4.3: Commit Changes
+
+```bash
+git commit -m "Complete Fake Names 2FA bot implementation"
+```
+
+### Step 4.4: Connect to Remote GitHub Repository
+
+```bash
+git remote add origin https://github.com/HimelKhan006/fake-names-2fa-bot.git
+```
+
+### Step 4.5: Push Code to Main Branch
+
+```bash
+git branch -M main
+git push -u origin main --force
+```
+
+---
+
+## 5. 24/7 Hosting Setup Instructions on Render.com
+
+Follow these step-by-step instructions to host your bot 24/7 for free:
+
+1. Log in to **[Render.com](https://render.com)**.
 2. Click **New +** ➔ **Web Service**.
-3. Connect your GitHub Repository `fake-names-2fa-bot`.
-4. Configure Web Service Settings:
+3. Select **Build and deploy from a Git repository** and connect `fake-names-2fa-bot`.
+4. Enter the following exact settings:
    - **Name**: `fake-names-2fa-bot`
-   - **Environment**: `Python 3`
-   - **Region**: Any (e.g. Oregon / Frankfurt)
+   - **Region**: `Oregon (US West)` or `Frankfurt (EU Central)`
    - **Branch**: `main`
+   - **Root Directory**: *(Leave blank)*
+   - **Environment**: `Python 3`
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `python main.py`
    - **Instance Type**: `Free`
-5. Add Environment Variables under **Environment**:
-   - `TELEGRAM_BOT_TOKEN`: `your_bot_token`
-   - `ADMIN_ID`: `6798979733,@MegalodonKKH`
-   - `PORT`: `10000`
-6. Click **Create Web Service**. Render will deploy your bot and expose your HTTP health URL (e.g. `https://fake-names-2fa-bot.onrender.com`).
+5. Click **Advanced** ➔ **Add Environment Variable**:
+   - `TELEGRAM_BOT_TOKEN` = `8772394606:AAFbBND_6i1Cxg7mRn0CeoMZhZlRU4LNA0Y`
+   - `ADMIN_ID` = `6798979733,@MegalodonKKH`
+   - `PORT` = `10000`
+6. Click **Create Web Service**. Render will build the image, deploy the application, and assign your Web Service URL (e.g. `https://fake-names-2fa-bot.onrender.com`).
 
 ---
 
 ## 6. 24/7 Continuous Uptime Pinger (UptimeRobot)
 
-Render free tier Web Services sleep after 15 minutes of inactivity. Keep it awake 24/7 for FREE:
+Render Free Tier puts Web Services to sleep after 15 minutes of HTTP inactivity. Keep it awake 24/7 for FREE:
 
-1. Sign up on **[UptimeRobot.com](https://uptimerobot.com)**.
-2. Click **Add New Monitor**.
-3. Select **Monitor Type**: `HTTP(s)`.
-4. Set **Friendly Name**: `Fake Names 2FA Bot`.
-5. Enter **URL**: `https://fake-names-2fa-bot.onrender.com`.
-6. Set **Monitoring Interval**: `5 minutes`.
-7. Click **Create Monitor**. UptimeRobot will ping your server every 5 minutes 24/7!
+1. Create a free account at **[UptimeRobot.com](https://uptimerobot.com)**.
+2. Click **Add New Monitor** button.
+3. Configure settings:
+   - **Monitor Type**: `HTTP(s)`
+   - **Friendly Name**: `Fake Names 2FA Bot`
+   - **URL / IP**: `https://fake-names-2fa-bot.onrender.com`
+   - **Monitoring Interval**: `5 minutes`
+4. Click **Create Monitor**. UptimeRobot will ping your Render Web Service every 5 minutes 24/7, keeping your Telegram bot active continuously without sleeping!
 
 ---
 
-## 7. Admin Control Panel & Commands Master List
+## 7. Admin & User Commands Master Reference Guide
 
-Only users listed in `ADMIN_ID` can access Admin commands.
+### 👑 Admin Management Commands
 
-### 👑 Admin Commands
-
-- `/admin` or `/stats` — Open live Admin Dashboard & Invites Leaderboard
-- `/users` — Inspect all registered members & Unique IDs (`#FN-1001`)
-- `/send <user_id> <message>` (or reply) — Direct message any member via the bot
-- `/broadcast <message>` — Send mass broadcast to all members (returns Broadcast ID `B-101`)
-- `/delete_broadcast B-101` (or reply `/delete`) — Delete broadcast from all member chats
-- `/delete <chat_id> <message_id>` (or reply `/delete`) — Remotely delete any bot message in user chat
-- `/ban <user_id>` (or reply) — Ban user account from bot access
-- `/unban <user_id>` (or reply) — Unban user account
-- `/banned` — List all banned user accounts
+| Command Syntax | Action Description & Example Usage |
+| :--- | :--- |
+| `/admin` or `/stats` | Open live Admin Panel Dashboard with stats & top inviters leaderboard |
+| `/users` | Inspect all registered bot members with Member IDs (`#FN-1001`) |
+| `/send <user_id> <msg>` | Send direct message to a user (Example: `/send 6798979733 Hello!`) |
+| `/broadcast <msg>` | Broadcast announcement to all members (Example: `/broadcast System Update!`) |
+| `/delete_broadcast B-101` | Delete broadcast message from all member chats (or reply `/delete` to summary card) |
+| `/delete <chat_id> <msg_id>` | Remotely delete any message sent by the bot (or reply `/delete` to message) |
+| `/ban <user_id>` | Suspend a user's bot access (Example: `/ban 123456789`) |
+| `/unban <user_id>` | Restore a banned user's access (Example: `/unban 123456789`) |
+| `/banned` | View list of all currently suspended user accounts |
 
 ### 👤 General User Commands (Native Menu Bar)
 
-- `/start` — Start / Restart bot & open Console Menu
-- `/invite` — Get personal referral deep-link & view invite count
-- `/guide` — View complete User Guide
-- `/id` — Inspect Telegram User ID & Account Info
-- *Paste Base32 Key / OTPAuth Link* — Generate instant 6-digit TOTP code
+| Command Syntax | Action Description |
+| :--- | :--- |
+| `/start` | Start / Restart bot and open clean Console Menu |
+| `/invite` | Get personal deep-link referral URL & view live invite count |
+| `/guide` | View complete User Guide manual |
+| `/id` | Inspect your Telegram User ID, Member ID (`#FN-1001`), and account status |
+| *Paste Base32 Key* | Paste Base32 Secret or OTPAuth URL to generate instant 6-digit TOTP code |
