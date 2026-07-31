@@ -7,6 +7,7 @@
 ---
 
 ## 📑 TABLE OF CONTENTS
+
 1. [Telegram Bot Creation via BotFather](#1-telegram-bot-creation-via-botfather)
 2. [Project Files & Architecture](#2-project-files--architecture)
 3. [Local Configuration & Testing](#3-local-configuration--testing)
@@ -45,15 +46,20 @@ For safe long-term backup, store these **6 core files**:
 ## 3. Local Configuration & Testing
 
 1. Create a `.env` file in the project folder with:
+
    ```env
    TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
    ADMIN_ID=6798979733,@MegalodonKKH
    ```
+
 2. Install Python dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
+
 3. Run the bot locally:
+
    ```bash
    python main.py
    ```
@@ -65,12 +71,15 @@ For safe long-term backup, store these **6 core files**:
 ## 4. GitHub Repository Setup & Push
 
 1. Initialize Git repository and commit code:
+
    ```bash
    git init
    git add .
    git commit -m "Initial commit for Fake Names 2FA bot"
    ```
+
 2. Link to your GitHub repo and push:
+
    ```bash
    git remote add origin https://github.com/HimelKhan006/fake-names-2fa-bot.git
    git branch -M main
@@ -119,6 +128,7 @@ Render free tier Web Services sleep after 15 minutes of inactivity. Keep it awak
 Only users listed in `ADMIN_ID` can access Admin commands.
 
 ### 👑 Admin Commands
+
 - `/admin` or `/stats` — Open live Admin Dashboard & Invites Leaderboard
 - `/users` — Inspect all registered members & Unique IDs (`#FN-1001`)
 - `/send <user_id> <message>` (or reply) — Direct message any member via the bot
@@ -130,6 +140,7 @@ Only users listed in `ADMIN_ID` can access Admin commands.
 - `/banned` — List all banned user accounts
 
 ### 👤 General User Commands (Native Menu Bar)
+
 - `/start` — Start / Restart bot & open Console Menu
 - `/invite` — Get personal referral deep-link & view invite count
 - `/guide` — View complete User Guide
