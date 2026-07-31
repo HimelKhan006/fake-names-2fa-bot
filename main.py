@@ -1544,14 +1544,20 @@ def notify_admin_online():
             pass
 
 _offline_notified = False
-_recent_deploy_conflict = False  # True if bot saw a 409 conflict recently (deploy handover, NOT a suspend)
+_recent_deploy_conflict = False  # True if bot saw a 409 conflict recently (deploy handover)
 
 def notify_admin_offline():
-    """Notifies Bot Administrators when the bot server goes genuinely OFFLINE (suspend/stop)."""
+    """Notifies Bot Administrators with bulletproof direct HTTP delivery when the bot server goes OFFLINE (suspend/stop)."""
     global _offline_notified
     if _offline_notified or not ADMIN_IDS:
         return
     _offline_notified = True
+
+    try:
+        bot.stop_polling()
+    except Exception:
+        pass
+
     msg = (
         "🔴 BOT STATUS: OFFLINE\n"
         "CREATED BY: KKH\n\n"
@@ -1563,22 +1569,21 @@ def notify_admin_offline():
     )
     for aid in ADMIN_IDS:
         try:
-            bot.send_message(aid, msg, parse_mode='Markdown')
-        except Exception:
-            pass
+            url = f"https://api.telegram.org/bot{API_TOKEN}/sendMessage"
+            payload_data = json.dumps({"chat_id": aid, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
+            req = urllib.request.Request(url, data=payload_data, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=5):
+                pass
+            logger.info(f"Direct offline notification sent to Admin ID: {aid}")
+        except Exception as e:
+            logger.warning(f"Could not send offline notice to {aid}: {e}")
 
 def handle_shutdown_signal(signum=None, frame=None):
-    """Handles SIGTERM / SIGINT shutdown signals.
-    Only sends OFFLINE alert if this is a real suspend/stop — NOT a deploy container handover.
-    A 409 conflict in the last 30 seconds = deploy restart (skip offline alert).
-    No 409 conflict = genuine suspend (send offline alert).
-    """
-    if not _recent_deploy_conflict:
-        # Real suspend/stop — notify admins
-        notify_admin_offline()
-    else:
-        logger.info("Shutdown detected as deploy container handover (409 conflict seen). Skipping OFFLINE alert.")
+    """Handles SIGTERM / SIGINT shutdown signals cleanly with direct offline notification."""
+    notify_admin_offline()
     sys.exit(0)
+
+atexit.register(notify_admin_offline)
 
 try:
     signal.signal(signal.SIGTERM, handle_shutdown_signal)
