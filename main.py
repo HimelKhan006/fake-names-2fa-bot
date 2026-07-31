@@ -1440,30 +1440,8 @@ def notify_admin_online():
 
 _offline_notified = False
 
-def notify_admin_offline():
-    """Notifies Bot Administrators when the bot server goes OFFLINE."""
-    global _offline_notified
-    if _offline_notified or not ADMIN_IDS:
-        return
-    _offline_notified = True
-    msg = (
-        "🔴 BOT STATUS: OFFLINE\n"
-        "CREATED BY: KKH\n\n"
-        "⚠️ Fake Names 2FA Bot Server is going OFFLINE!\n\n"
-        "SYSTEM STATUS:\n"
-        "• Status: Offline / Server Stopping\n"
-        f"• Shutdown Time: `{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}`\n\n"
-        "The server container is stopping or restarting."
-    )
-    for aid in ADMIN_IDS:
-        try:
-            bot.send_message(aid, msg, parse_mode='Markdown')
-        except Exception:
-            pass
-
 def handle_shutdown_signal(signum=None, frame=None):
     """Handles SIGTERM / SIGINT shutdown signals cleanly."""
-    notify_admin_offline()
     sys.exit(0)
 
 try:
