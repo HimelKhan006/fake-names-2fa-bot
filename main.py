@@ -494,7 +494,8 @@ def universal_extract_2fa_secret(text: str) -> Optional[str]:
         if match:
             raw_text = match.group(1)
 
-    # 2. Clean out spaces, hyphens, tabs, newlines, and invalid chars
+    # 2. Clean out spaces, hyphens, tabs, newlines, and normalize 0->O, 1->I typos
+    raw_text = raw_text.replace('0', 'O').replace('1', 'I')
     cleaned = RE_CLEAN_BASE32.sub('', raw_text).upper()
 
     # Base32 2FA keys are standard 16, 26, 32, or 64 characters long
@@ -1372,14 +1373,21 @@ def handle_text_inputs(message):
             try:
                 totp = pyotp.TOTP(cleaned_key)
                 current_code = totp.now()
-                time_remaining = 30 - (int(time.time()) % 30)
+                now_ts = int(time.time())
+                time_remaining = 30 - (now_ts % 30)
+                
+                prev_code = totp.at(now_ts - 30)
+                next_code = totp.at(now_ts + 30)
 
-                # Clean single-tap 6-digit TOTP code output
+                # Clean single-tap 6-digit TOTP code output with clock-drift helpers
                 response = (
-                    "2FA CODE\n\n"
+                    "2FA CODE GENERATOR\n"
+                    "CREATED BY: KKH\n\n"
                     f"`{current_code}`\n\n"
-                    f"Expires in: {time_remaining}s\n"
-                    "Tap code above to copy!"
+                    f"• Expires in: {time_remaining}s\n"
+                    f"• Prev Code (Clock Drift): `{prev_code}`\n"
+                    f"• Next Code: `{next_code}`\n\n"
+                    "Tap main code above to copy!"
                 )
                 bot.send_message(message.chat.id, response, parse_mode='Markdown')
             except Exception:
