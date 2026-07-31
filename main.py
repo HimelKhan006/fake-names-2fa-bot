@@ -1544,9 +1544,40 @@ def notify_admin_online():
             pass
 
 _offline_notified = False
+_recent_deploy_conflict = False  # True if bot saw a 409 conflict recently (deploy handover, NOT a suspend)
+
+def notify_admin_offline():
+    """Notifies Bot Administrators when the bot server goes genuinely OFFLINE (suspend/stop)."""
+    global _offline_notified
+    if _offline_notified or not ADMIN_IDS:
+        return
+    _offline_notified = True
+    msg = (
+        "🔴 BOT STATUS: OFFLINE\n"
+        "CREATED BY: KKH\n\n"
+        "⚠️ Fake Names 2FA Bot Server is OFFLINE!\n\n"
+        "SYSTEM STATUS:\n"
+        "• Status: Offline / Server Suspended\n"
+        f"• Shutdown Time: `{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}`\n\n"
+        "The server has been suspended or stopped."
+    )
+    for aid in ADMIN_IDS:
+        try:
+            bot.send_message(aid, msg, parse_mode='Markdown')
+        except Exception:
+            pass
 
 def handle_shutdown_signal(signum=None, frame=None):
-    """Handles SIGTERM / SIGINT shutdown signals cleanly."""
+    """Handles SIGTERM / SIGINT shutdown signals.
+    Only sends OFFLINE alert if this is a real suspend/stop — NOT a deploy container handover.
+    A 409 conflict in the last 30 seconds = deploy restart (skip offline alert).
+    No 409 conflict = genuine suspend (send offline alert).
+    """
+    if not _recent_deploy_conflict:
+        # Real suspend/stop — notify admins
+        notify_admin_offline()
+    else:
+        logger.info("Shutdown detected as deploy container handover (409 conflict seen). Skipping OFFLINE alert.")
     sys.exit(0)
 
 try:
@@ -1564,15 +1595,21 @@ if __name__ == '__main__':
         threading.Thread(target=notify_admin_online, daemon=True).start()
     except Exception:
         pass
-    
+
     conflict_count = 0
+    conflict_last_seen = 0  # timestamp of last 409 conflict
+
     while True:
         try:
             bot.infinity_polling(timeout=1, long_polling_timeout=1, skip_pending=True)
+            # If polling exits cleanly, reset conflict tracking
             conflict_count = 0
+            _recent_deploy_conflict = False
         except telebot.apihelper.ApiTelegramException as e:
             if e.error_code == 409:
                 conflict_count += 1
+                conflict_last_seen = time.time()
+                _recent_deploy_conflict = True  # Mark as deploy handover — suppress false OFFLINE alert
                 if conflict_count % 5 == 1:
                     logger.warning(f"Telegram 409 Conflict detected (Render container handover attempt #{conflict_count}). Re-trying lock...")
                 time.sleep(2)
@@ -1582,3 +1619,8 @@ if __name__ == '__main__':
         except Exception as e:
             logger.error(f"Polling loop exception: {e}")
             time.sleep(2)
+
+        # Reset deploy flag if 409 was more than 60 seconds ago (deploy is done)
+        if _recent_deploy_conflict and (time.time() - conflict_last_seen) > 60:
+            _recent_deploy_conflict = False
+
