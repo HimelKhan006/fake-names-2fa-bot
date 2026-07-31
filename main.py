@@ -36,6 +36,9 @@ import signal
 import atexit
 import threading
 import urllib.request
+import base64
+import hashlib
+import hmac
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
@@ -143,10 +146,102 @@ broadcast_seq = 100
 
 GIST_ID = os.getenv("GIST_ID", "").strip()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip() or os.getenv("GIST_TOKEN", "").strip()
+ENCRYPTION_SECRET = os.getenv("DATA_ENCRYPTION_KEY", "").strip() or API_TOKEN or "kkh_2fa_secret_key"
+
+def derive_cipher_key(salt: bytes) -> bytes:
+    """Derives a strong 32-byte (256-bit) cipher key using PBKDF2-HMAC-SHA256 (100,000 iterations)."""
+    return hashlib.pbkdf2_hmac('sha256', ENCRYPTION_SECRET.encode('utf-8'), salt, iterations=100000, dklen=32)
+
+def encrypt_json_payload(data_dict: dict) -> str:
+    """
+    Encrypts a JSON dictionary into an authenticated PBKDF2-HMAC-SHA256 ciphertext package.
+    Protects user data against hackers and unauthorized inspection on GitHub Gists.
+    """
+    raw_bytes = json.dumps(data_dict, ensure_ascii=False).encode('utf-8')
+    salt = os.urandom(16)
+    iv = os.urandom(16)
+    key = derive_cipher_key(salt)
+    
+    # Counter-mode keystream generator using HMAC-SHA256
+    keystream = bytearray()
+    counter = 0
+    while len(keystream) < len(raw_bytes):
+        h = hmac.new(key, iv + counter.to_bytes(4, 'big'), hashlib.sha256)
+        keystream.extend(h.digest())
+        counter += 1
+        
+    ciphertext = bytes(b ^ k for b, k in zip(raw_bytes, keystream[:len(raw_bytes)]))
+    mac = hmac.new(key, salt + iv + ciphertext, hashlib.sha256).digest()
+    
+    package = {
+        "ver": "1.0",
+        "enc": "PBKDF2-HMAC-SHA256-CTR",
+        "salt": base64.b64encode(salt).decode('ascii'),
+        "iv": base64.b64encode(iv).decode('ascii'),
+        "mac": base64.b64encode(mac).decode('ascii'),
+        "ciphertext": base64.b64encode(ciphertext).decode('ascii')
+    }
+    return json.dumps(package, indent=2)
+
+def decrypt_json_payload(payload_str: str) -> Optional[dict]:
+    """
+    Decrypts and verifies an authenticated ciphertext payload back into a JSON dictionary.
+    Returns None if decryption or HMAC verification fails (tampering/invalid key).
+    """
+    try:
+        package = json.loads(payload_str)
+        if not isinstance(package, dict):
+            return None
+            
+        # Support legacy unencrypted JSON files for seamless upgrade
+        if "known_users" in package and "salt" not in package:
+            return package
+
+        if "salt" not in package or "ciphertext" not in package:
+            return None
+
+        salt = base64.b64decode(package["salt"])
+        iv = base64.b64decode(package["iv"])
+        mac = base64.b64decode(package["mac"])
+        ciphertext = base64.b64decode(package["ciphertext"])
+
+        key = derive_cipher_key(salt)
+
+        # Constant-time HMAC-SHA256 authentication check against tampering
+        expected_mac = hmac.new(key, salt + iv + ciphertext, hashlib.sha256).digest()
+        if not hmac.compare_digest(mac, expected_mac):
+            logger.warning("Decryption failed: HMAC authentication mismatch (tampered data or wrong key)!")
+            return None
+
+        # Reconstruct keystream
+        keystream = bytearray()
+        counter = 0
+        while len(keystream) < len(ciphertext):
+            h = hmac.new(key, iv + counter.to_bytes(4, 'big'), hashlib.sha256)
+            keystream.extend(h.digest())
+            counter += 1
+
+        plaintext = bytes(c ^ k for c, k in zip(ciphertext, keystream[:len(ciphertext)]))
+        return json.loads(plaintext.decode('utf-8'))
+    except Exception as e:
+        logger.warning(f"Could not decrypt payload: {e}")
+        return None
+
+def apply_member_data(data: dict):
+    """Helper to populate global member structures from decoded dictionary."""
+    global known_users, welcomed_users, banned_users, user_unique_ids, referrals
+    welcomed_users.update(data.get("welcomed_users", []))
+    known_users.update(data.get("known_users", []))
+    banned_users.update(data.get("banned_users", []))
+    for k, v in data.get("user_unique_ids", {}).items():
+        uid = int(k) if str(k).isdigit() else k
+        user_unique_ids[uid] = v
+    for k, v in data.get("referrals", {}).items():
+        uid = int(k) if str(k).isdigit() else k
+        referrals[uid] = set(v)
 
 def sync_from_gist():
-    """Fetches and restores persistent member data from GitHub Gist Database on startup."""
-    global known_users, welcomed_users, banned_users, user_unique_ids, referrals
+    """Fetches and decrypts persistent member data from GitHub Gist Database on startup."""
     if not GIST_ID:
         return False
     try:
@@ -163,24 +258,17 @@ def sync_from_gist():
                 if "bot_data.json" in files:
                     content_str = files["bot_data.json"].get("content", "")
                     if content_str:
-                        data = json.loads(content_str)
-                        welcomed_users.update(data.get("welcomed_users", []))
-                        known_users.update(data.get("known_users", []))
-                        banned_users.update(data.get("banned_users", []))
-                        for k, v in data.get("user_unique_ids", {}).items():
-                            uid = int(k) if str(k).isdigit() else k
-                            user_unique_ids[uid] = v
-                        for k, v in data.get("referrals", {}).items():
-                            uid = int(k) if str(k).isdigit() else k
-                            referrals[uid] = set(v)
-                        logger.info("Successfully restored member data from GitHub Gist Database!")
-                        return True
+                        decrypted = decrypt_json_payload(content_str)
+                        if decrypted:
+                            apply_member_data(decrypted)
+                            logger.info("Successfully fetched & decrypted member database from GitHub Gist!")
+                            return True
     except Exception as e:
         logger.warning(f"Could not sync data from GitHub Gist: {e}")
     return False
 
 def sync_to_gist_async():
-    """Asynchronously backs up bot_data.json to GitHub Gist Database in the background."""
+    """Asynchronously encrypts and backs up bot_data.json to GitHub Gist Database in the background."""
     if not GIST_ID or not GITHUB_TOKEN:
         return
 
@@ -194,11 +282,11 @@ def sync_to_gist_async():
                 "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
                 "referrals": {str(k): list(v) for k, v in referrals.items()}
             }
-            json_str = json.dumps(data_payload, ensure_ascii=False, indent=2)
+            encrypted_payload = encrypt_json_payload(data_payload)
             payload = {
                 "files": {
                     "bot_data.json": {
-                        "content": json_str
+                        "content": encrypted_payload
                     }
                 }
             }
@@ -208,14 +296,14 @@ def sync_to_gist_async():
             req.add_header("Content-Type", "application/json")
             with urllib.request.urlopen(req, timeout=10) as response:
                 if response.status == 200:
-                    logger.info("Successfully backed up bot_data.json to GitHub Gist Database!")
+                    logger.info("Successfully encrypted & backed up bot_data.json to GitHub Gist Database!")
         except Exception as e:
             logger.warning(f"GitHub Gist sync backup error: {e}")
 
     threading.Thread(target=_push, daemon=True).start()
 
 def auto_create_gist():
-    """Automatically creates a private GitHub Gist Database if GITHUB_TOKEN is set but GIST_ID is empty."""
+    """Automatically creates an encrypted private GitHub Gist Database if GITHUB_TOKEN is set but GIST_ID is empty."""
     global GIST_ID
     if GIST_ID or not GITHUB_TOKEN:
         return
@@ -228,13 +316,13 @@ def auto_create_gist():
             "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
             "referrals": {str(k): list(v) for k, v in referrals.items()}
         }
-        json_str = json.dumps(data_payload, ensure_ascii=False, indent=2)
+        encrypted_payload = encrypt_json_payload(data_payload)
         payload = {
-            "description": "Fake Names 2FA Telegram Bot Persistent Database (bot_data.json)",
+            "description": "Fake Names 2FA Telegram Bot Encrypted Persistent Database (bot_data.json)",
             "public": False,
             "files": {
                 "bot_data.json": {
-                    "content": json_str
+                    "content": encrypted_payload
                 }
             }
         }
@@ -246,7 +334,7 @@ def auto_create_gist():
             if response.status == 201:
                 gist_data = json.loads(response.read().decode('utf-8'))
                 GIST_ID = gist_data.get("id", "")
-                logger.info(f"Auto-created new GitHub Gist Database! GIST_ID: {GIST_ID}")
+                logger.info(f"Auto-created new Encrypted GitHub Gist Database! GIST_ID: {GIST_ID}")
     except Exception as e:
         logger.warning(f"Could not auto-create GitHub Gist: {e}")
 
@@ -267,8 +355,6 @@ def save_data_local_only():
 
 def load_data():
     """Loads persistent member data from GitHub Gist or disk."""
-    global known_users, welcomed_users, banned_users, user_unique_ids, referrals
-    
     # 1. Try syncing from GitHub Gist database first
     if sync_from_gist():
         save_data_local_only()
@@ -278,16 +364,10 @@ def load_data():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8-sig") as f:
-                data = json.load(f)
-                welcomed_users.update(data.get("welcomed_users", []))
-                known_users.update(data.get("known_users", []))
-                banned_users.update(data.get("banned_users", []))
-                for k, v in data.get("user_unique_ids", {}).items():
-                    uid = int(k) if str(k).isdigit() else k
-                    user_unique_ids[uid] = v
-                for k, v in data.get("referrals", {}).items():
-                    uid = int(k) if str(k).isdigit() else k
-                    referrals[uid] = set(v)
+                content_str = f.read()
+                decrypted = decrypt_json_payload(content_str)
+                if decrypted:
+                    apply_member_data(decrypted)
         except Exception as e:
             logger.warning(f"Could not load data file: {e}")
 
