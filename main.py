@@ -33,6 +33,7 @@ import json
 import random
 import time
 import signal
+import atexit
 import threading
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -1206,9 +1207,56 @@ def run_health_server():
 health_thread = threading.Thread(target=run_health_server, daemon=True)
 health_thread.start()
 
+def notify_admin_online():
+    """Notifies Bot Administrators when the bot server starts & comes ONLINE."""
+    if not ADMIN_IDS:
+        return
+    msg = (
+        "🟢 BOT STATUS: ONLINE\n"
+        "CREATED BY: KKH\n\n"
+        "🚀 Fake Names 2FA Bot is NOW ONLINE & Live 24/7!\n\n"
+        "SYSTEM STATUS:\n"
+        "• Status: Active & Operational\n"
+        "• Worker Threads: 16 Concurrent Threads\n"
+        "• Mode: Instant 2FA & Multi-Category Name Generator\n"
+        f"• Startup Time: `{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}`\n\n"
+        "All systems operational."
+    )
+    for aid in ADMIN_IDS:
+        try:
+            bot.send_message(aid, msg, parse_mode='Markdown')
+        except Exception:
+            pass
+
+_offline_notified = False
+
+def notify_admin_offline():
+    """Notifies Bot Administrators when the bot server goes OFFLINE."""
+    global _offline_notified
+    if _offline_notified or not ADMIN_IDS:
+        return
+    _offline_notified = True
+    msg = (
+        "🔴 BOT STATUS: OFFLINE\n"
+        "CREATED BY: KKH\n\n"
+        "⚠️ Fake Names 2FA Bot Server is going OFFLINE!\n\n"
+        "SYSTEM STATUS:\n"
+        "• Status: Offline / Server Stopping\n"
+        f"• Shutdown Time: `{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}`\n\n"
+        "The server container is stopping or restarting."
+    )
+    for aid in ADMIN_IDS:
+        try:
+            bot.send_message(aid, msg, parse_mode='Markdown')
+        except Exception:
+            pass
+
 def handle_shutdown_signal(signum=None, frame=None):
     """Handles SIGTERM / SIGINT shutdown signals cleanly."""
+    notify_admin_offline()
     sys.exit(0)
+
+atexit.register(notify_admin_offline)
 
 try:
     signal.signal(signal.SIGTERM, handle_shutdown_signal)
@@ -1219,6 +1267,12 @@ except Exception:
 if __name__ == '__main__':
     logger.info("Starting ultra-fast 16-worker thread Fake Names 2FA telebot Infinity Polling...")
     print("Bot is active and running live 24/7...")
+
+    # Dispatch Online status alert to Administrators
+    try:
+        threading.Thread(target=notify_admin_online, daemon=True).start()
+    except Exception:
+        pass
     
     conflict_count = 0
     while True:
