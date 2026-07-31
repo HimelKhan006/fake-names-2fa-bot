@@ -322,8 +322,14 @@ def sync_to_gist_async():
 def auto_create_gist():
     """Automatically creates an encrypted private GitHub Gist Database if GITHUB_TOKEN is set but GIST_ID is empty."""
     global GIST_ID
-    if GIST_ID or not GITHUB_TOKEN:
+    if GIST_ID:
+        logger.info(f"GitHub Gist DB already configured. GIST_ID: {GIST_ID[:8]}...")
         return
+    if not GITHUB_TOKEN:
+        logger.warning("GitHub Gist DB: GITHUB_TOKEN is not set — skipping Gist auto-create. Add GITHUB_TOKEN to your environment variables.")
+        return
+
+    logger.info("GitHub Gist DB: GITHUB_TOKEN detected. Attempting to auto-create encrypted Gist database...")
     try:
         url = "https://api.github.com/gists"
         # Always include at least a valid skeleton so GitHub never rejects empty content
@@ -337,6 +343,8 @@ def auto_create_gist():
                 "welcomed_users": [], "known_users": [], "banned_users": [],
                 "user_unique_ids": {}, "referrals": {}, "broadcast_history": {}
             })
+
+        logger.info(f"GitHub Gist DB: Encrypted payload size: {len(encrypted_payload)} bytes. Sending to GitHub API...")
 
         payload = {
             "description": "Fake Names 2FA Telegram Bot — Encrypted Persistent Database",
@@ -352,12 +360,23 @@ def auto_create_gist():
         req.add_header("Authorization", f"token {GITHUB_TOKEN}")
         req.add_header("Content-Type", "application/json")
         with urllib.request.urlopen(req, timeout=15) as response:
-            if response.status == 201:
+            status = response.status
+            logger.info(f"GitHub Gist API response status: {status}")
+            if status == 201:
                 gist_data = json.loads(response.read().decode('utf-8'))
                 GIST_ID = gist_data.get("id", "")
-                logger.info(f"Auto-created new Encrypted GitHub Gist Database! GIST_ID: {GIST_ID}")
+                gist_url = gist_data.get("html_url", "")
+                logger.info(f"✅ Auto-created new Encrypted GitHub Gist Database! GIST_ID: {GIST_ID}")
+                logger.info(f"✅ Gist URL: {gist_url}")
+                logger.info(f"✅ ACTION REQUIRED: Add GIST_ID={GIST_ID} to your Render environment variables!")
+            else:
+                body = response.read().decode('utf-8')
+                logger.warning(f"GitHub Gist API returned unexpected status {status}: {body}")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8') if e.fp else str(e)
+        logger.warning(f"GitHub Gist auto-create HTTP error {e.code}: {body}")
     except Exception as e:
-        logger.warning(f"Could not auto-create GitHub Gist: {e}")
+        logger.warning(f"GitHub Gist auto-create failed: {type(e).__name__}: {e}")
 
 def save_data_local_only():
     """Saves encrypted persistent member & admin data to local disk."""
