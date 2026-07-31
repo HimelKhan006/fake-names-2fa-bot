@@ -1079,7 +1079,8 @@ def handle_callback(call):
                     g = random.choice(["male", "female"])
 
                 full_name = generate_simple_name(user_id, g, pref_category)
-                batch_lines.append(f"`{full_name}`")
+                tag = "[Male]" if g == "male" else "[Female]"
+                batch_lines.append(f"{tag} `{full_name}`")
 
             header = "Fake Names 2FA — BATCH RESULT\nCREATED BY: KKH\n\n"
             meta = f"Type: {pref_category.capitalize()} | Mode: {pref_gender.capitalize()} | Quantity: {count} Names\n───────────────────────────\n\n"
