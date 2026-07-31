@@ -922,28 +922,24 @@ def handle_commands(message):
         settings = get_user_settings(user_id)
         text = get_kkh_menu_text(settings)
 
-        first_name = message.from_user.first_name or "User"
-        welcome_header = (
-            f"WELCOME TO FAKE NAMES 2FA!\n"
-            f"CREATED BY: KKH\n\n"
-            f"Hello {first_name}! Welcome to Fake Names 2FA — your professional Fake Name Generator & instant 2FA Authenticator.\n\n"
-            "USER GUIDE & FEATURES:\n"
-            "1. NAME GENERATOR:\n"
-            "• Customize Gender (Male, Female, Mixed) & Quantity (5, 10, 20, 50).\n"
-            "• Tap GENERATE to create clean, single-tap copyable names.\n\n"
-            "2. INSTANT 2FA AUTHENTICATOR:\n"
-            "• Paste any Base32 2FA Secret Key or OTPAuth link into chat to get a live 6-digit TOTP code instantly.\n\n"
-            "3. NAVIGATION:\n"
-            "• Use Telegram's native menu button (/) for commands (/start, /invite, /guide, /id) anytime.\n\n"
-            "───────────────────────────\n\n"
-        )
-
-        if is_restart:
-            restart_header = "🔄 BOT RESTARTED & UPDATED SUCCESSFULLY!\n\n"
-            text = restart_header + welcome_header + text
-        elif is_first_time and "/start" in cmd:
+        if is_first_time and "/start" in cmd:
             welcomed_users.add(user_id)
             save_data()
+            first_name = message.from_user.first_name or "User"
+            welcome_header = (
+                f"WELCOME TO FAKE NAMES 2FA!\n"
+                f"CREATED BY: KKH\n\n"
+                f"Hello {first_name}! Welcome to Fake Names 2FA — your professional Fake Name Generator & instant 2FA Authenticator.\n\n"
+                "USER GUIDE & FEATURES:\n"
+                "1. NAME GENERATOR:\n"
+                "• Customize Gender (Male, Female, Mixed) & Quantity (5, 10, 20, 50).\n"
+                "• Tap GENERATE to create clean, single-tap copyable names.\n\n"
+                "2. INSTANT 2FA AUTHENTICATOR:\n"
+                "• Paste any Base32 2FA Secret Key or OTPAuth link into chat to get a live 6-digit TOTP code instantly.\n\n"
+                "3. NAVIGATION:\n"
+                "• Use Telegram's native menu button (/) for commands (/start, /invite, /guide, /id) anytime.\n\n"
+                "───────────────────────────\n\n"
+            )
             text = welcome_header + text
 
         # Send instant single message console with ReplyKeyboardRemove attached directly
