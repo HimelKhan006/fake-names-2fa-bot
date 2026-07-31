@@ -1049,6 +1049,30 @@ def handle_text_inputs(message):
     except Exception as err:
         logger.error(f"Error in handle_text_inputs: {err}")
 
+import http.server
+import socketserver
+
+def run_health_server():
+    port = int(os.getenv("PORT", 8080))
+    class HealthHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Fake Names 2FA Bot is Running Live 24/7!")
+        def log_message(self, format, *args):
+            pass
+
+    try:
+        with socketserver.TCPServer(("", port), HealthHandler) as httpd:
+            logger.info(f"Health check HTTP server listening on port {port}")
+            httpd.serve_forever()
+    except Exception as e:
+        logger.warning(f"Could not start health HTTP server: {e}")
+
+health_thread = threading.Thread(target=run_health_server, daemon=True)
+health_thread.start()
+
 if __name__ == '__main__':
     logger.info("Starting ultra-fast 16-worker thread Fake Names 2FA telebot Infinity Polling...")
     print("Bot is active and running at MAXIMUM INSTANT SPEED...")
