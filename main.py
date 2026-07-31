@@ -31,6 +31,8 @@ import re
 import sys
 import random
 import time
+import signal
+import atexit
 import threading
 import logging
 from typing import Optional
@@ -1075,17 +1077,68 @@ def run_health_server():
 health_thread = threading.Thread(target=run_health_server, daemon=True)
 health_thread.start()
 
+shutdown_notified = False
+
+def notify_server_status(is_online=True):
+    """Sends professional Server Online / Offline cards to ADMIN_IDS."""
+    global shutdown_notified
+    if not is_online and shutdown_notified:
+        return
+    if not is_online:
+        shutdown_notified = True
+
+    if not ADMIN_IDS:
+        return
+
+    status_title = "🟢 SYSTEM ONLINE | FAKE NAMES 2FA" if is_online else "🔴 SYSTEM OFFLINE | FAKE NAMES 2FA"
+    status_desc = "The bot server has successfully initialized and is live 24/7!" if is_online else "The bot server is shutting down or undergoing container handover."
+    status_state = "Online 🟢" if is_online else "Offline 🔴"
+
+    alert_msg = (
+        f"{status_title}\n"
+        "CREATED BY: KKH\n\n"
+        f"{status_desc}\n\n"
+        "SYSTEM DETAILS:\n"
+        f"• Server Status: {status_state}\n"
+        "• Worker Pool: 16 Concurrent Threads\n"
+        "• Response Time: < 20ms (Instant)\n"
+        "• Health Port: 10000 (0.0.0.0)"
+    )
+
+    for aid in ADMIN_IDS:
+        try:
+            bot.send_message(aid, alert_msg, parse_mode='Markdown')
+        except Exception:
+            pass
+
+def handle_shutdown_signal(signum=None, frame=None):
+    """Handles SIGTERM / SIGINT shutdown signals cleanly."""
+    notify_server_status(is_online=False)
+    sys.exit(0)
+
+try:
+    signal.signal(signal.SIGTERM, handle_shutdown_signal)
+    signal.signal(signal.SIGINT, handle_shutdown_signal)
+except Exception:
+    pass
+
+atexit.register(lambda: notify_server_status(is_online=False))
+
 if __name__ == '__main__':
     logger.info("Starting ultra-fast 16-worker thread Fake Names 2FA telebot Infinity Polling...")
-    print("Bot is active and running at MAXIMUM INSTANT SPEED...")
+    notify_server_status(is_online=True)
     
+    conflict_count = 0
     while True:
         try:
             bot.infinity_polling(timeout=1, long_polling_timeout=1, skip_pending=True)
+            conflict_count = 0
         except telebot.apihelper.ApiTelegramException as e:
             if e.error_code == 409:
-                logger.warning("Telegram 409 Conflict detected (another instance releasing lock). Retrying in 1 second...")
-                time.sleep(1)
+                conflict_count += 1
+                if conflict_count % 5 == 1:
+                    logger.warning(f"Telegram 409 Conflict detected (Render container handover attempt #{conflict_count}). Re-trying lock...")
+                time.sleep(2)
             else:
                 logger.error(f"Telegram API Exception: {e}")
                 time.sleep(2)
