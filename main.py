@@ -1080,7 +1080,7 @@ health_thread.start()
 shutdown_notified = False
 
 def notify_server_status(is_online=True):
-    """Sends professional Server Online / Offline cards to ADMIN_IDS."""
+    """Sends clean SYSTEM ONLINE / SYSTEM OFFLINE status messages to ADMIN_IDS."""
     global shutdown_notified
     if not is_online and shutdown_notified:
         return
@@ -1090,24 +1090,11 @@ def notify_server_status(is_online=True):
     if not ADMIN_IDS:
         return
 
-    status_title = "🟢 SYSTEM ONLINE | FAKE NAMES 2FA" if is_online else "🔴 SYSTEM OFFLINE | FAKE NAMES 2FA"
-    status_desc = "The bot server has successfully initialized and is live 24/7!" if is_online else "The bot server is shutting down or undergoing container handover."
-    status_state = "Online 🟢" if is_online else "Offline 🔴"
-
-    alert_msg = (
-        f"{status_title}\n"
-        "CREATED BY: KKH\n\n"
-        f"{status_desc}\n\n"
-        "SYSTEM DETAILS:\n"
-        f"• Server Status: {status_state}\n"
-        "• Worker Pool: 16 Concurrent Threads\n"
-        "• Response Time: < 20ms (Instant)\n"
-        "• Health Port: 10000 (0.0.0.0)"
-    )
+    alert_msg = "🟢 SYSTEM ONLINE" if is_online else "🔴 SYSTEM OFFLINE"
 
     for aid in ADMIN_IDS:
         try:
-            bot.send_message(aid, alert_msg, parse_mode='Markdown')
+            bot.send_message(aid, alert_msg)
         except Exception:
             pass
 
