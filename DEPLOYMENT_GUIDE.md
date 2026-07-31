@@ -10,7 +10,7 @@
 
 1. [Telegram Bot Creation via BotFather](#1-telegram-bot-creation-via-botfather)
 2. [Exact Files to Upload to Hosting / GitHub](#2-exact-files-to-upload-to-hosting--github)
-3. [Local Terminal Setup & Testing Commands](#3-local-terminal-setup--testing-commands)
+3. [PowerShell, CMD & Linux Terminal Commands](#3-powershell-cmd--linux-terminal-commands)
 4. [GitHub Repository Setup & Push Commands](#4-github-repository-setup--push-commands)
 5. [24/7 Hosting Setup Instructions on Render.com](#5-247-hosting-setup-instructions-on-rendercom)
 6. [24/7 Continuous Uptime Pinger (UptimeRobot)](#6-247-continuous-uptime-pinger-uptimerobot)
@@ -76,78 +76,108 @@ Follow these step-by-step instructions in Telegram:
 
 ---
 
-## 3. Local Terminal Setup & Testing Commands
+## 3. PowerShell, CMD & Linux Terminal Commands
 
-Run these exact terminal commands on your local machine:
+Choose your terminal environment below and execute these exact copy-paste commands:
 
-### Step 3.1: Navigate to Project Folder
+### 3.1 Windows PowerShell Commands
 
-```bash
-cd "c:\new tele bot"
-```
+Open PowerShell and run:
 
-### Step 3.2: Create `.env` Configuration File
+```powershell
+# 1. Navigate to project directory
+Set-Location -Path "c:\new tele bot"
 
-Create a file named `.env` in `c:\new tele bot\` containing:
-
-```env
+# 2. Create .env configuration file
+@'
 TELEGRAM_BOT_TOKEN=8772394606:AAFbBND_6i1Cxg7mRn0CeoMZhZlRU4LNA0Y
 ADMIN_ID=6798979733,@MegalodonKKH
-```
+'@ | Set-Content -Path ".env" -Encoding UTF8
 
-### Step 3.3: Install Python Dependencies
-
-```bash
+# 3. Install Python dependencies
 pip install -r requirements.txt
-```
 
-### Step 3.4: Verify Python Syntax Compilation
-
-```bash
+# 4. Verify Python code syntax compilation
 python -m py_compile main.py
-```
 
-### Step 3.5: Run Bot Locally for Testing
-
-```bash
+# 5. Run bot locally for testing
 python main.py
 ```
 
-*CRITICAL NOTE: Stop the local Python process (`CTRL + C` or closing terminal) BEFORE launching on Render live server so Telegram does not trigger `409 Conflict` errors!*
+---
+
+### 3.2 Windows Command Prompt (CMD) Commands
+
+Open CMD (`cmd.exe`) and run:
+
+```cmd
+:: 1. Navigate to project directory
+cd /d "c:\new tele bot"
+
+:: 2. Create .env file
+echo TELEGRAM_BOT_TOKEN=8772394606:AAFbBND_6i1Cxg7mRn0CeoMZhZlRU4LNA0Y > .env
+echo ADMIN_ID=6798979733,@MegalodonKKH >> .env
+
+:: 3. Install Python dependencies
+pip install -r requirements.txt
+
+:: 4. Verify Python code syntax compilation
+python -m py_compile main.py
+
+:: 5. Run bot locally for testing
+python main.py
+```
+
+---
+
+### 3.3 Linux / Ubuntu VPS Server Setup Commands
+
+If hosting on a Linux / Ubuntu VPS server:
+
+```bash
+# 1. Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# 2. Install Python 3, Pip and Git
+sudo apt install python3 python3-pip git -y
+
+# 3. Clone repository
+git clone https://github.com/HimelKhan006/fake-names-2fa-bot.git
+cd fake-names-2fa-bot
+
+# 4. Create .env configuration file
+cat << 'EOF' > .env
+TELEGRAM_BOT_TOKEN=8772394606:AAFbBND_6i1Cxg7mRn0CeoMZhZlRU4LNA0Y
+ADMIN_ID=6798979733,@MegalodonKKH
+EOF
+
+# 5. Install dependencies
+pip3 install -r requirements.txt
+
+# 6. Run bot in 24/7 background mode
+nohup python3 main.py > bot.log 2>&1 &
+```
 
 ---
 
 ## 4. GitHub Repository Setup & Push Commands
 
-Run these terminal commands to initialize Git and push all project files to GitHub:
-
-### Step 4.1: Initialize Git Repository
+Run these terminal commands in PowerShell or CMD to push your code:
 
 ```bash
+# 1. Initialize Git repository
 git init
-```
 
-### Step 4.2: Add All Project Files
-
-```bash
+# 2. Add core files
 git add main.py requirements.txt Procfile .gitignore README.md DEPLOYMENT_GUIDE.md
-```
 
-### Step 4.3: Commit Changes
-
-```bash
+# 3. Commit changes
 git commit -m "Complete Fake Names 2FA bot implementation"
-```
 
-### Step 4.4: Connect to Remote GitHub Repository
-
-```bash
+# 4. Connect to remote GitHub repo
 git remote add origin https://github.com/HimelKhan006/fake-names-2fa-bot.git
-```
 
-### Step 4.5: Push Code to Main Branch
-
-```bash
+# 5. Push code to main branch
 git branch -M main
 git push -u origin main --force
 ```
