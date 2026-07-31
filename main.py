@@ -1070,7 +1070,7 @@ def handle_callback(call):
             pref_category = settings.get('category', 'islamic')
             batch_lines = []
 
-            for _ in range(count):
+            for idx in range(1, count + 1):
                 if pref_gender == "male":
                     g = "male"
                 elif pref_gender == "female":
@@ -1079,7 +1079,9 @@ def handle_callback(call):
                     g = random.choice(["male", "female"])
 
                 full_name = generate_simple_name(user_id, g, pref_category)
-                batch_lines.append(f"`{full_name}` ({g.capitalize()})")
+                tag = f"[{g.capitalize()}]"
+                num_prefix = f"{idx:02d}." if count >= 10 else f"{idx}."
+                batch_lines.append(f"{num_prefix} `{full_name}` {tag}")
 
             header = "Fake Names 2FA — BATCH RESULT\nCREATED BY: KKH\n\n"
             meta = f"Type: {pref_category.capitalize()} | Mode: {pref_gender.capitalize()} | Quantity: {count} Names\n───────────────────────────\n\n"
