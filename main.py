@@ -149,9 +149,12 @@ def load_data():
                 welcomed_users.update(data.get("welcomed_users", []))
                 known_users.update(data.get("known_users", []))
                 banned_users.update(data.get("banned_users", []))
-                user_unique_ids.update(data.get("user_unique_ids", {}))
+                for k, v in data.get("user_unique_ids", {}).items():
+                    uid = int(k) if str(k).isdigit() else k
+                    user_unique_ids[uid] = v
                 for k, v in data.get("referrals", {}).items():
-                    referrals[int(k)] = set(v)
+                    uid = int(k) if str(k).isdigit() else k
+                    referrals[uid] = set(v)
         except Exception as e:
             logger.warning(f"Could not load data file: {e}")
 
@@ -162,7 +165,7 @@ def save_data():
             "welcomed_users": list(welcomed_users),
             "known_users": list(known_users),
             "banned_users": list(banned_users),
-            "user_unique_ids": user_unique_ids,
+            "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
             "referrals": {str(k): list(v) for k, v in referrals.items()}
         }
         with open(DATA_FILE, "w", encoding="utf-8") as f:
