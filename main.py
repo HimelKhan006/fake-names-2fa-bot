@@ -33,9 +33,9 @@ import json
 import random
 import time
 import signal
-import atexit
 import threading
 import logging
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -1097,55 +1097,30 @@ def handle_text_inputs(message):
     except Exception as err:
         logger.error(f"Error in handle_text_inputs: {err}")
 
-import http.server
-import socketserver
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Fake Names 2FA Bot is Running Live 24/7!")
+
+    def log_message(self, format, *args):
+        pass
 
 def run_health_server():
     port = int(os.getenv("PORT", 10000))
-    class HealthHandler(http.server.SimpleHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"Fake Names 2FA Bot is Running Live 24/7!")
-        def log_message(self, format, *args):
-            pass
-
     try:
-        socketserver.TCPServer.allow_reuse_address = True
-        with socketserver.TCPServer(("0.0.0.0", port), HealthHandler) as httpd:
-            logger.info(f"Health check HTTP server bound to 0.0.0.0:{port}")
-            httpd.serve_forever()
+        server = HTTPServer(("0.0.0.0", port), HealthHandler)
+        logger.info(f"Health check HTTP server running on 0.0.0.0:{port}")
+        server.serve_forever()
     except Exception as e:
         logger.warning(f"Could not start health HTTP server: {e}")
 
 health_thread = threading.Thread(target=run_health_server, daemon=True)
 health_thread.start()
 
-shutdown_notified = False
-
-def notify_server_status(is_online=True):
-    """Sends clean SYSTEM ONLINE / SYSTEM OFFLINE status messages to ADMIN_IDS."""
-    global shutdown_notified
-    if not is_online and shutdown_notified:
-        return
-    if not is_online:
-        shutdown_notified = True
-
-    if not ADMIN_IDS:
-        return
-
-    alert_msg = "🟢 SYSTEM ONLINE" if is_online else "🔴 SYSTEM OFFLINE"
-
-    for aid in ADMIN_IDS:
-        try:
-            bot.send_message(aid, alert_msg)
-        except Exception:
-            pass
-
 def handle_shutdown_signal(signum=None, frame=None):
     """Handles SIGTERM / SIGINT shutdown signals cleanly."""
-    notify_server_status(is_online=False)
     sys.exit(0)
 
 try:
@@ -1156,7 +1131,7 @@ except Exception:
 
 if __name__ == '__main__':
     logger.info("Starting ultra-fast 16-worker thread Fake Names 2FA telebot Infinity Polling...")
-    notify_server_status(is_online=True)
+    print("Bot is active and running live 24/7...")
     
     conflict_count = 0
     while True:
