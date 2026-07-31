@@ -1466,8 +1466,6 @@ def handle_shutdown_signal(signum=None, frame=None):
     notify_admin_offline()
     sys.exit(0)
 
-atexit.register(notify_admin_offline)
-
 try:
     signal.signal(signal.SIGTERM, handle_shutdown_signal)
     signal.signal(signal.SIGINT, handle_shutdown_signal)
