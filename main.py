@@ -1087,11 +1087,11 @@ def handle_callback(call):
             for idx, (full_name, g) in enumerate(generated_items, 1):
                 num_prefix = f"{idx:02d}." if count >= 10 else f"{idx}."
                 if pref_gender == "mixed":
-                    pad_spaces = " " * (target_width - len(full_name) + 2)
-                    tag = f"{pad_spaces}({g.capitalize()})"
+                    padded_name = full_name.ljust(target_width)
+                    tag = f" ({g.capitalize()})"
+                    batch_lines.append(f"{num_prefix} `{padded_name}`{tag}")
                 else:
-                    tag = ""
-                batch_lines.append(f"{num_prefix} `{full_name}`{tag}")
+                    batch_lines.append(f"{num_prefix} `{full_name}`")
 
             header = "Fake Names 2FA — BATCH RESULT\nCREATED BY: KKH\n\n"
             meta = f"Type: {pref_category.capitalize()} | Mode: {pref_gender.capitalize()} | Quantity: {count} Names\n───────────────────────────\n\n"
