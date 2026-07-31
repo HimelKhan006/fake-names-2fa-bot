@@ -29,6 +29,7 @@ Features:
 import os
 import re
 import sys
+import json
 import random
 import time
 import signal
@@ -126,16 +127,51 @@ def register_clean_native_commands():
 
 register_clean_native_commands()
 
-# In-Memory Fast Storage
+# In-Memory Fast Storage & Persistent Disk Sync
+DATA_FILE = "bot_data.json"
 user_settings = {}
 user_history = {}
 known_users = set()       # Set of regular non-admin member Telegram user_ids
+welcomed_users = set()    # Set of user_ids who have received the first-time welcome card
 banned_users = set()      # Set of banned Telegram user_ids
 user_names = {}           # user_id -> "[#FN-1001] Full Name (@username)"
 user_unique_ids = {}      # user_id -> "#FN-1001"
 referrals = {}            # inviter_id -> set of invited user_ids
 broadcast_history = {}    # broadcast_seq (int) -> list of (user_id, message_id)
 broadcast_seq = 100
+
+def load_data():
+    """Loads persistent member data from disk."""
+    global known_users, welcomed_users, banned_users, user_unique_ids, referrals
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                welcomed_users.update(data.get("welcomed_users", []))
+                known_users.update(data.get("known_users", []))
+                banned_users.update(data.get("banned_users", []))
+                user_unique_ids.update(data.get("user_unique_ids", {}))
+                for k, v in data.get("referrals", {}).items():
+                    referrals[int(k)] = set(v)
+        except Exception as e:
+            logger.warning(f"Could not load data file: {e}")
+
+def save_data():
+    """Saves persistent member data to disk."""
+    try:
+        data = {
+            "welcomed_users": list(welcomed_users),
+            "known_users": list(known_users),
+            "banned_users": list(banned_users),
+            "user_unique_ids": user_unique_ids,
+            "referrals": {str(k): list(v) for k, v in referrals.items()}
+        }
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"Could not save data file: {e}")
+
+load_data()
 
 def get_unique_id(user_id):
     """Assigns and retrieves a professional unique member ID (#FN-1001 or #FN-ADMIN)."""
@@ -847,7 +883,7 @@ def handle_commands(message):
         if check_ban_guard(message.chat.id, user_id):
             return
 
-        is_first_time = (user_id not in known_users)
+        is_first_time = (user_id not in welcomed_users)
 
         # Check for deep-link referral parameter: /start ref_123456
         inviter_id = None
@@ -891,6 +927,8 @@ def handle_commands(message):
         if is_restart:
             text = "BOT RESTARTED SUCCESSFULLY!\n\n" + text
         elif is_first_time and "/start" in cmd:
+            welcomed_users.add(user_id)
+            save_data()
             first_name = message.from_user.first_name or "User"
             welcome_header = (
                 f"WELCOME TO FAKE NAMES 2FA!\n"
@@ -903,7 +941,7 @@ def handle_commands(message):
                 "2. INSTANT 2FA AUTHENTICATOR:\n"
                 "• Paste any Base32 2FA Secret Key or OTPAuth link into chat to get a live 6-digit TOTP code instantly.\n\n"
                 "3. NAVIGATION:\n"
-                "• Use Telegram's native menu button (/) for commands (/start, /restart, /invite, /guide) anytime.\n\n"
+                "• Use Telegram's native menu button (/) for commands (/start, /restart, /invite, /guide, /id) anytime.\n\n"
                 "───────────────────────────\n\n"
             )
             text = welcome_header + text
