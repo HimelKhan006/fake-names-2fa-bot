@@ -298,27 +298,29 @@ def universal_extract_2fa_secret(text: str) -> Optional[str]:
 # 3. Word Banks & Pure Name Generator
 # -----------------------------------------------------------------------------
 MALE_FIRST_NAMES = [
-    "Ledger", "Alan", "Muhammad", "Omar", "Ali", "Usman", "Ibrahim", "Yusuf", "Tariq", "Hamza",
-    "Bilal", "Khalid", "Yahya", "Zayd", "Idris", "Anas", "Rayyan", "Mustafa", "Sulaiman", "Harun",
-    "James", "Robert", "Liam", "Alexander", "Daniel", "Ethan", "Michael", "William", "David", "John",
-    "Joseph", "Matthew", "Benjamin", "Samuel", "Sebastian", "Henry", "Jackson", "Owen", "Gabriel", "Carter",
-    "Jayden", "Wyatt", "Julian", "Grayson", "Leo", "Isaac", "Anthony", "Theodore", "Dylan", "Luke"
+    "Muhammad", "Ahmed", "Mustafa", "Ali", "Hassan", "Hussein", "Omar", "Usman", "Ibrahim", "Yusuf",
+    "Hamza", "Bilal", "Khalid", "Tariq", "Zayd", "Idris", "Anas", "Rayyan", "Sulaiman", "Harun",
+    "Yahya", "Ismail", "Ishaq", "Yaqoob", "Musa", "Isa", "Luqman", "Zakaraiya", "Younus", "Ayyub",
+    "Dawud", "Talha", "Zubair", "Sa'd", "Saeed", "Abdur-Rahman", "Abdullah", "Abdul-Aziz", "Abdul-Kareem", "Abdul-Latif",
+    "Abdul-Qadir", "Abdul-Malik", "Taha", "Yasin", "Ziyad", "Jafar", "Ayman", "Nabil", "Faris", "Sami",
+    "Wassim", "Rashid", "Imran", "Salim", "Faysal", "Sharif", "Jamal", "Nasser", "Walid", "Kamal"
 ]
 
 FEMALE_FIRST_NAMES = [
-    "Peyton", "Radha", "Fatima", "Aisha", "Khadija", "Maryam", "Zainab", "Ruqayyah", "Sumayyah", "Yasmin",
-    "Safiyyah", "Hafsah", "Sarah", "Hajar", "Asma", "Juwairiyah", "Sawdah", "Maymunah", "Halimah", "Layla",
-    "Emma", "Olivia", "Sophia", "Isabella", "Charlotte", "Amelia", "Mia", "Harper", "Evelyn", "Abigail",
-    "Emily", "Ella", "Elizabeth", "Camila", "Luna", "Sofia", "Avery", "Mila", "Aria", "Scarlett",
-    "Penelope", "Chloe", "Victoria", "Madison", "Eleanor", "Grace", "Nora", "Riley", "Zoey", "Hannah"
+    "Fatima", "Aisha", "Khadija", "Maryam", "Zainab", "Ruqayyah", "Sumayyah", "Yasmin", "Safiyyah", "Hafsah",
+    "Sarah", "Hajar", "Asma", "Juwairiyah", "Sawdah", "Maymunah", "Halimah", "Layla", "Amina", "Noura",
+    "Salma", "Hana", "Iman", "Farida", "Lina", "Reem", "Samira", "Dalia", "Noor", "Huda",
+    "Zahra", "Yara", "Bushra", "Habiba", "Najiya", "Rania", "Basma", "Arwa", "Jamila", "Malika",
+    "Rawan", "Latifa", "Mona", "Wafa", "Tasnim", "Safa", "Marwa", "Kawthar", "Afraa", "Maha"
 ]
 
 SURNAMES = [
-    "Carleton", "Hopkins", "Giles", "Atkins", "Al-Faruq", "Al-Hassan", "Al-Husayn", "Siddiqui", "Farooqi", "Rahman",
-    "Khan", "Malik", "Qureshi", "Abbasi", "Hashimi", "Ansari", "Al-Masri", "Al-Baghdadi", "Usmani", "Smith",
-    "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez",
-    "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee",
-    "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker"
+    "Al-Faruq", "Al-Hassan", "Al-Husayn", "Siddiqui", "Farooqi", "Rahman", "Khan", "Malik", "Qureshi",
+    "Abbasi", "Hashimi", "Ansari", "Al-Masri", "Al-Baghdadi", "Usmani", "Al-Sayed", "Al-Ahmad", "Al-Mansoor",
+    "Al-Zahrani", "Al-Ghamdi", "Al-Otaibi", "Al-Shehri", "Al-Dawsari", "Al-Mutairi", "Al-Rashid", "Al-Khatib",
+    "Al-Qasim", "Al-Bitar", "Al-Husseini", "Al-Najjar", "Al-Attar", "Al-Shami", "Al-Haddad", "Chowdhury",
+    "Alam", "Hossain", "Sheikh", "Mirza", "Baqri", "Kazmi", "Zaidi", "Rizvi", "Naqvi", "Shah",
+    "Syed", "Al-Maliki", "Al-Nasser", "Al-Farsi", "Al-Bahrani", "Al-Saeed", "Al-Zomor", "Al-Ghazali"
 ]
 
 def generate_simple_name(user_id, gender):
