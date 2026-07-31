@@ -326,10 +326,20 @@ def auto_create_gist():
         return
     try:
         url = "https://api.github.com/gists"
+        # Always include at least a valid skeleton so GitHub never rejects empty content
         data_payload = get_current_data_payload()
         encrypted_payload = encrypt_json_payload(data_payload)
+
+        # GitHub Gist API rejects empty or whitespace-only content — ensure it has real bytes
+        if not encrypted_payload or len(encrypted_payload.strip()) < 10:
+            encrypted_payload = encrypt_json_payload({
+                "admin_ids": [], "admin_usernames": [],
+                "welcomed_users": [], "known_users": [], "banned_users": [],
+                "user_unique_ids": {}, "referrals": {}, "broadcast_history": {}
+            })
+
         payload = {
-            "description": "Fake Names 2FA Telegram Bot Encrypted Persistent Database (bot_data.json)",
+            "description": "Fake Names 2FA Telegram Bot — Encrypted Persistent Database",
             "public": False,
             "files": {
                 "bot_data.json": {
@@ -341,7 +351,7 @@ def auto_create_gist():
         req.add_header("User-Agent", "FakeNames2FABot")
         req.add_header("Authorization", f"token {GITHUB_TOKEN}")
         req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             if response.status == 201:
                 gist_data = json.loads(response.read().decode('utf-8'))
                 GIST_ID = gist_data.get("id", "")
