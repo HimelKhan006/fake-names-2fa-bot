@@ -228,8 +228,8 @@ def decrypt_json_payload(payload_str: str) -> Optional[dict]:
         return None
 
 def apply_member_data(data: dict):
-    """Helper to populate global member structures from decoded dictionary."""
-    global known_users, welcomed_users, banned_users, user_unique_ids, referrals
+    """Helper to populate global member & admin structures from decoded dictionary."""
+    global known_users, welcomed_users, banned_users, user_unique_ids, referrals, broadcast_history
     welcomed_users.update(data.get("welcomed_users", []))
     known_users.update(data.get("known_users", []))
     banned_users.update(data.get("banned_users", []))
@@ -239,9 +239,19 @@ def apply_member_data(data: dict):
     for k, v in data.get("referrals", {}).items():
         uid = int(k) if str(k).isdigit() else k
         referrals[uid] = set(v)
+    for k, v in data.get("broadcast_history", {}).items():
+        if str(k).isdigit():
+            seq = int(k)
+            broadcast_history[seq] = [tuple(item) for item in v]
+    for aid in data.get("admin_ids", []):
+        if str(aid).isdigit():
+            ADMIN_IDS.add(int(aid))
+    for a_user in data.get("admin_usernames", []):
+        if a_user:
+            ADMIN_USERNAMES.add(str(a_user).lower())
 
 def sync_from_gist():
-    """Fetches and decrypts persistent member data from GitHub Gist Database on startup."""
+    """Fetches and decrypts persistent member & admin data from GitHub Gist Database on startup."""
     if not GIST_ID:
         return False
     try:
@@ -261,27 +271,34 @@ def sync_from_gist():
                         decrypted = decrypt_json_payload(content_str)
                         if decrypted:
                             apply_member_data(decrypted)
-                            logger.info("Successfully fetched & decrypted member database from GitHub Gist!")
+                            logger.info("Successfully fetched & decrypted member & admin database from GitHub Gist!")
                             return True
     except Exception as e:
         logger.warning(f"Could not sync data from GitHub Gist: {e}")
     return False
 
+def get_current_data_payload():
+    """Constructs complete member & admin data payload for encrypted storage."""
+    return {
+        "admin_ids": list(ADMIN_IDS),
+        "admin_usernames": list(ADMIN_USERNAMES),
+        "welcomed_users": list(welcomed_users),
+        "known_users": list(known_users),
+        "banned_users": list(banned_users),
+        "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
+        "referrals": {str(k): list(v) for k, v in referrals.items()},
+        "broadcast_history": {str(k): [list(item) for item in v] for k, v in broadcast_history.items()}
+    }
+
 def sync_to_gist_async():
-    """Asynchronously encrypts and backs up bot_data.json to GitHub Gist Database in the background."""
+    """Asynchronously encrypts and backs up member & admin data to GitHub Gist Database in the background."""
     if not GIST_ID or not GITHUB_TOKEN:
         return
 
     def _push():
         try:
             url = f"https://api.github.com/gists/{GIST_ID}"
-            data_payload = {
-                "welcomed_users": list(welcomed_users),
-                "known_users": list(known_users),
-                "banned_users": list(banned_users),
-                "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
-                "referrals": {str(k): list(v) for k, v in referrals.items()}
-            }
+            data_payload = get_current_data_payload()
             encrypted_payload = encrypt_json_payload(data_payload)
             payload = {
                 "files": {
@@ -296,7 +313,7 @@ def sync_to_gist_async():
             req.add_header("Content-Type", "application/json")
             with urllib.request.urlopen(req, timeout=10) as response:
                 if response.status == 200:
-                    logger.info("Successfully encrypted & backed up bot_data.json to GitHub Gist Database!")
+                    logger.info("Successfully encrypted & backed up member & admin database to GitHub Gist!")
         except Exception as e:
             logger.warning(f"GitHub Gist sync backup error: {e}")
 
@@ -309,13 +326,7 @@ def auto_create_gist():
         return
     try:
         url = "https://api.github.com/gists"
-        data_payload = {
-            "welcomed_users": list(welcomed_users),
-            "known_users": list(known_users),
-            "banned_users": list(banned_users),
-            "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
-            "referrals": {str(k): list(v) for k, v in referrals.items()}
-        }
+        data_payload = get_current_data_payload()
         encrypted_payload = encrypt_json_payload(data_payload)
         payload = {
             "description": "Fake Names 2FA Telegram Bot Encrypted Persistent Database (bot_data.json)",
@@ -339,22 +350,17 @@ def auto_create_gist():
         logger.warning(f"Could not auto-create GitHub Gist: {e}")
 
 def save_data_local_only():
-    """Saves persistent member data to local disk."""
+    """Saves encrypted persistent member & admin data to local disk."""
     try:
-        data = {
-            "welcomed_users": list(welcomed_users),
-            "known_users": list(known_users),
-            "banned_users": list(banned_users),
-            "user_unique_ids": {str(k): v for k, v in user_unique_ids.items()},
-            "referrals": {str(k): list(v) for k, v in referrals.items()}
-        }
+        data_payload = get_current_data_payload()
+        encrypted_payload = encrypt_json_payload(data_payload)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.write(encrypted_payload)
     except Exception as e:
         logger.warning(f"Could not save data file: {e}")
 
 def load_data():
-    """Loads persistent member data from GitHub Gist or disk."""
+    """Loads persistent member & admin data from GitHub Gist or disk."""
     # 1. Try syncing from GitHub Gist database first
     if sync_from_gist():
         save_data_local_only()
