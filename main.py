@@ -1328,6 +1328,47 @@ def handle_callback(call):
             except Exception:
                 pass
 
+        elif data.startswith("refresh_2fa_"):
+            secret_key = data.replace("refresh_2fa_", "")
+            try:
+                totp = pyotp.TOTP(secret_key)
+                current_code = totp.now()
+                now_ts = int(time.time())
+                time_remaining = 30 - (now_ts % 30)
+                prev_code = totp.at(now_ts - 30)
+                next_code = totp.at(now_ts + 30)
+
+                response = (
+                    "2FA CODE GENERATOR\n"
+                    "CREATED BY: KKH\n\n"
+                    f"`{current_code}`\n\n"
+                    f"• Expires in: {time_remaining}s\n"
+                    f"• Prev Code (Clock Drift): `{prev_code}`\n"
+                    f"• Next Code: `{next_code}`\n\n"
+                    "Tap main code above to copy!"
+                )
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                btn_refresh = types.InlineKeyboardButton("🔄 Refresh 2FA Code", callback_data=f"refresh_2fa_{secret_key}")
+                markup.add(btn_refresh)
+
+                try:
+                    bot.edit_message_text(
+                        response,
+                        chat_id=call.message.chat.id,
+                        message_id=call.message.message_id,
+                        reply_markup=markup,
+                        parse_mode='Markdown'
+                    )
+                except Exception:
+                    pass
+                try:
+                    bot.answer_callback_query(call.id, text="🔄 2FA Code Refreshed!")
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning(f"Refresh 2FA error: {e}")
+            return
+
         elif data == "show_main_menu":
             text = get_kkh_menu_text(settings)
             markup = build_kkh_keyboard(settings)
@@ -1379,7 +1420,7 @@ def handle_text_inputs(message):
                 prev_code = totp.at(now_ts - 30)
                 next_code = totp.at(now_ts + 30)
 
-                # Clean single-tap 6-digit TOTP code output with clock-drift helpers
+                # Clean single-tap 6-digit TOTP code output with clock-drift helpers & Refresh button
                 response = (
                     "2FA CODE GENERATOR\n"
                     "CREATED BY: KKH\n\n"
@@ -1389,7 +1430,10 @@ def handle_text_inputs(message):
                     f"• Next Code: `{next_code}`\n\n"
                     "Tap main code above to copy!"
                 )
-                bot.send_message(message.chat.id, response, parse_mode='Markdown')
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                btn_refresh = types.InlineKeyboardButton("🔄 Refresh 2FA Code", callback_data=f"refresh_2fa_{cleaned_key}")
+                markup.add(btn_refresh)
+                bot.send_message(message.chat.id, response, reply_markup=markup, parse_mode='Markdown')
             except Exception:
                 bot.send_message(message.chat.id, "Invalid 2FA Secret Key format.")
             return
