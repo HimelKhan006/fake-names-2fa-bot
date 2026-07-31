@@ -1380,17 +1380,13 @@ def handle_callback(call):
                 current_code = totp.now()
                 now_ts = int(time.time())
                 time_remaining = 30 - (now_ts % 30)
-                prev_code = totp.at(now_ts - 30)
-                next_code = totp.at(now_ts + 30)
 
                 response = (
                     "2FA CODE GENERATOR\n"
                     "CREATED BY: KKH\n\n"
                     f"`{current_code}`\n\n"
-                    f"• Expires in: {time_remaining}s\n"
-                    f"• Prev Code (Clock Drift): `{prev_code}`\n"
-                    f"• Next Code: `{next_code}`\n\n"
-                    "Tap main code above to copy!"
+                    f"Expires in: {time_remaining}s\n"
+                    "Tap code above to copy!"
                 )
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 btn_refresh = types.InlineKeyboardButton("🔄 Refresh 2FA Code", callback_data=f"refresh_2fa_{secret_key}")
@@ -1469,19 +1465,14 @@ def handle_text_inputs(message):
                 current_code = totp.now()
                 now_ts = int(time.time())
                 time_remaining = 30 - (now_ts % 30)
-                
-                prev_code = totp.at(now_ts - 30)
-                next_code = totp.at(now_ts + 30)
 
-                # Clean single-tap 6-digit TOTP code output with clock-drift helpers & Refresh button
+                # Clean single-tap 6-digit TOTP code output with Refresh button
                 response = (
                     "2FA CODE GENERATOR\n"
                     "CREATED BY: KKH\n\n"
                     f"`{current_code}`\n\n"
-                    f"• Expires in: {time_remaining}s\n"
-                    f"• Prev Code (Clock Drift): `{prev_code}`\n"
-                    f"• Next Code: `{next_code}`\n\n"
-                    "Tap main code above to copy!"
+                    f"Expires in: {time_remaining}s\n"
+                    "Tap code above to copy!"
                 )
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 btn_refresh = types.InlineKeyboardButton("🔄 Refresh 2FA Code", callback_data=f"refresh_2fa_{cleaned_key}")
